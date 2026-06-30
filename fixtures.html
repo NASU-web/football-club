@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fixtures — NJUIT INT FC</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="masthead">
+  <div class="masthead-top">
+    <a href="index.html" class="brand">
+      <div class="crest"></div>
+      <div class="brand-name">NJUIT INT FC<small>NANJING &middot; EST. 2024</small></div>
+    </a>
+    <nav class="primary-nav">
+      <a href="index.html">Home</a>
+      <a href="players.html">Players</a>
+      <a href="stats.html">Stats</a>
+      <a href="fixtures.html">Fixtures</a>
+      <a href="lineup.html">Lineup</a>
+      <a href="history.html">History</a>
+      <a href="training.html">Training</a>
+      <a href="suggestions.html">Suggestions</a>
+      <a href="admin.html">Admin</a>
+    </nav>
+  </div>
+  <div class="ticker"><div class="ticker-track"><span>The weather man…</span></div></div>
+</header>
+
+<section class="tight" style="padding-top:48px;">
+  <div class="container">
+    <p class="eyebrow">2026 Season</p>
+    <h1 style="font-size:clamp(2rem,4vw,3rem);">Fixtures &amp; Results</h1>
+    <p style="max-width:60ch;">All competitive matches across the NJ Collegiate League and Regional Cup. Weather forecasts shown for upcoming fixtures.</p>
+  </div>
+</section>
+
+<section class="tight">
+  <div class="container">
+    <div class="section-head">
+      <h2>Results</h2>
+    </div>
+    <div id="results-list">
+      <p style="color:var(--ink-soft);">Loading&hellip;</p>
+    </div>
+  </div>
+</section>
+
+<section class="tight">
+  <div class="container">
+    <div class="section-head">
+      <h2>Upcoming</h2>
+    </div>
+    <div id="upcoming-list">
+      <p style="color:var(--ink-soft);">Loading&hellip;</p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <div class="foot-brand"><div class="crest"></div> NJUIT INT FC</div>
+    <small>&copy; <span class="this-year"></span> NJUIT International Football Club &middot; Newark, NJ</small>
+  </div>
+</footer>
+
+<script src="common.js"></script>
+<script>
+function resultTag(f) {
+  if (!f.result) return '';
+  const { for: gf, against: ga } = f.result;
+  const margin = gf > ga ? 'WIN' : gf < ga ? 'LOSS' : 'DRAW';
+  const color = margin === 'WIN' ? '#2f6b3f' : margin === 'LOSS' ? 'var(--crimson)' : 'var(--ink-soft)';
+  return `<span style="font-family:var(--font-mono); font-size:0.62rem; letter-spacing:0.07em; color:${color}; border:1px solid currentColor; padding:2px 7px;">${margin}</span>`;
+}
+
+function fixtureRow(f, weatherHtml) {
+  const d = new Date(f.date);
+  const day = d.toLocaleDateString(undefined, { weekday: 'short' });
+  const dateStr = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  const timeStr = d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+  const isHome = f.venue === 'home';
+  const scoreCell = f.result
+    ? `<div class="score">${f.result.for}–${f.result.against}</div>`
+    : `<div class="score" style="font-size:0.9rem; color:var(--ink-soft);">${timeStr}</div>`;
+
+  return `
+    <div class="fixture-row">
+      <div class="date-block">
+        <span>${day}</span>
+        <strong>${dateStr}</strong>
+        <span style="margin-top:2px; display:block;">${f.competition}</span>
+      </div>
+      <div class="opponent">
+        <span style="font-family:var(--font-mono); font-size:0.68rem; text-transform:uppercase; letter-spacing:0.06em; color:var(--crimson); display:block; margin-bottom:2px;">${isHome ? 'Home' : 'Away'}</span>
+        ${isHome ? 'NJUIT INT FC vs ' : 'NJUIT INT FC @'} ${f.opponent}
+        <small>${f.location}</small>
+        ${f.result ? resultTag(f) : ''}
+      </div>
+      ${scoreCell}
+      <div class="weather">${weatherHtml}</div>
+    </div>`;
+}
+
+async function loadFixtures() {
+  try {
+    const fixtures = await fetch('/api/fixtures').then(r => r.json());
+    const played = fixtures.filter(f => f.status === 'played').reverse();
+    const upcoming = fixtures.filter(f => f.status === 'scheduled');
+
+    // Results (no weather needed)
+    if (played.length) {
+      document.getElementById('results-list').innerHTML = played.map(f => fixtureRow(f, '—')).join('');
+    } else {
+      document.getElementById('results-list').innerHTML = '<div class="empty-state">No results yet this season.</div>';
+    }
+
+    // Upcoming — fetch weather in parallel
+    if (upcoming.length) {
+      const weatherResults = await Promise.allSettled(
+        upcoming.map(f => fetch('/api/weather/' + f.id).then(r => r.json()))
+      );
+      document.getElementById('upcoming-list').innerHTML = upcoming.map((f, i) => {
+        let wHtml = '<span class="weather-pill">Forecast unavailable</span>';
+        const wr = weatherResults[i];
+        if (wr.status === 'fulfilled' && wr.value.available && wr.value.temperatureF !== null) {
+          const w = wr.value;
+          wHtml = `<span class="weather-pill">${Math.round(w.temperatureF)}&deg;F &middot; ${w.precipitationProbability}% rain &middot; ${Math.round(w.windMph)} mph</span>`;
+        } else if (wr.status === 'fulfilled' && !wr.value.available) {
+          wHtml = '<span class="weather-pill">Forecast not yet available</span>';
+        }
+        return fixtureRow(f, wHtml);
+      }).join('');
+    } else {
+      document.getElementById('upcoming-list').innerHTML = '<div class="empty-state">No further fixtures scheduled. Check back soon.</div>';
+    }
+  } catch (e) {
+    document.getElementById('results-list').innerHTML = '<div class="empty-state">Could not load fixtures right now.</div>';
+    document.getElementById('upcoming-list').innerHTML = '';
+  }
+}
+
+document.addEventListener('DOMContentLoaded', loadFixtures);
+</script>
+</body>
+</html>

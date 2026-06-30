@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stats — NJUIT INT FC</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="masthead">
+  <div class="masthead-top">
+    <a href="index.html" class="brand">
+      <div class="crest"></div>
+      <div class="brand-name">NJUIT INT FC<small>NANJING &middot; EST. 2024</small></div>
+    </a>
+    <nav class="primary-nav">
+      <a href="index.html">Home</a>
+      <a href="players.html">Players</a>
+      <a href="stats.html">Stats</a>
+      <a href="fixtures.html">Fixtures</a>
+      <a href="lineup.html">Lineup</a>
+      <a href="history.html">History</a>
+      <a href="training.html">Training</a>
+      <a href="suggestions.html">Suggestions</a>
+      <a href="admin.html">Admin</a>
+    </nav>
+  </div>
+  <div class="ticker"><div class="ticker-track"><span>The weather man…</span></div></div>
+</header>
+
+<section class="tight" style="padding-top:48px;">
+  <div class="container">
+    <p class="eyebrow">Season Overview</p>
+    <h1 style="font-size:clamp(2rem,4vw,3rem);">Stats</h1>
+    <p style="max-width:60ch;">All figures from competitive matches this season across the NJ Collegiate League and the Regional Cup.</p>
+  </div>
+</section>
+
+<section class="tight">
+  <div class="container">
+    <div class="section-head"><h2>Club record</h2></div>
+    <div class="grid cols-3" id="club-record">
+      <p>Loading&hellip;</p>
+    </div>
+  </div>
+</section>
+
+<section class="tight">
+  <div class="container">
+    <div class="grid cols-2" style="gap:40px;" id="leaderboards">
+      <div>
+        <div class="section-head"><h2>Top scorers</h2></div>
+        <table id="scorers-table">
+          <thead><tr><th>#</th><th>Player</th><th class="num">Goals</th></tr></thead>
+          <tbody><tr><td colspan="3" style="padding:20px; text-align:center; color:var(--ink-soft);">Loading&hellip;</td></tr></tbody>
+        </table>
+      </div>
+      <div>
+        <div class="section-head"><h2>Top assists</h2></div>
+        <table id="assists-table">
+          <thead><tr><th>#</th><th>Player</th><th class="num">Assists</th></tr></thead>
+          <tbody><tr><td colspan="3" style="padding:20px; text-align:center; color:var(--ink-soft);">Loading&hellip;</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="tight">
+  <div class="container">
+    <div class="section-head"><h2>Full squad stats</h2></div>
+    <div style="overflow-x:auto;">
+      <table id="full-stats-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Name</th>
+            <th>Pos</th>
+            <th>Nat</th>
+            <th class="num">Apps</th>
+            <th class="num">Goals</th>
+            <th class="num">Assists</th>
+            <th class="num">G+A</th>
+            <th class="num">YC</th>
+            <th class="num">RC</th>
+          </tr>
+        </thead>
+        <tbody><tr><td colspan="10" style="padding:20px; text-align:center; color:var(--ink-soft);">Loading&hellip;</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <div class="foot-brand"><div class="crest"></div> NJUIT INT FC</div>
+    <small>&copy; <span class="this-year"></span> NJUIT International Football Club &middot; Newark, NJ</small>
+  </div>
+</footer>
+
+<script src="common.js"></script>
+<script>
+const POS = { Goalkeeper: 'GK', Defender: 'DF', Midfielder: 'MF', Forward: 'FW' };
+
+async function loadStats() {
+  try {
+    const [stats, players] = await Promise.all([
+      fetch('/api/stats').then(r => r.json()),
+      fetch('/api/players').then(r => r.json())
+    ]);
+
+    // Club record cards
+    const c = stats.club;
+    const gd = c.goalsFor - c.goalsAgainst;
+    const ppg = c.played ? (c.wins * 3 + c.draws) / c.played : 0;
+    document.getElementById('club-record').innerHTML = `
+      <div class="card" style="text-align:center;">
+        <div style="font-family:var(--font-mono); font-size:0.68rem; text-transform:uppercase; letter-spacing:0.1em; color:var(--ink-soft); margin-bottom:8px;">Record</div>
+        <div style="font-family:var(--font-display); font-size:2.2rem; font-weight:900; color:var(--navy);">${c.wins}W ${c.draws}D ${c.losses}L</div>
+        <div style="font-family:var(--font-mono); font-size:0.78rem; color:var(--ink-soft); margin-top:4px;">${c.played} matches played</div>
+      </div>
+      <div class="card" style="text-align:center;">
+        <div style="font-family:var(--font-mono); font-size:0.68rem; text-transform:uppercase; letter-spacing:0.1em; color:var(--ink-soft); margin-bottom:8px;">Goals</div>
+        <div style="font-family:var(--font-display); font-size:2.2rem; font-weight:900; color:var(--navy);">${c.goalsFor} <span style="color:var(--crimson); font-size:1.4rem;">/</span> ${c.goalsAgainst}</div>
+        <div style="font-family:var(--font-mono); font-size:0.78rem; color:var(--ink-soft); margin-top:4px;">For / Against &middot; GD ${gd >= 0 ? '+' : ''}${gd}</div>
+      </div>
+      <div class="card" style="text-align:center;">
+        <div style="font-family:var(--font-mono); font-size:0.68rem; text-transform:uppercase; letter-spacing:0.1em; color:var(--ink-soft); margin-bottom:8px;">Points per game</div>
+        <div style="font-family:var(--font-display); font-size:2.2rem; font-weight:900; color:var(--navy);">${ppg.toFixed(2)}</div>
+        <div style="font-family:var(--font-mono); font-size:0.78rem; color:var(--ink-soft); margin-top:4px;">${stats.squadSize} players &middot; ${stats.nationalities} nations</div>
+      </div>`;
+
+    // Top scorers
+    document.querySelector('#scorers-table tbody').innerHTML = stats.topScorers.map((p, i) => `
+      <tr>
+        <td style="font-family:var(--font-mono); color:var(--ink-soft);">${i + 1}</td>
+        <td><strong>${p.name}</strong> <span style="font-family:var(--font-mono); font-size:0.72rem; color:var(--ink-soft);">#${p.number ?? '—'}</span></td>
+        <td class="num" style="font-family:var(--font-mono); font-weight:700; color:var(--crimson); font-size:1.1rem;">${p.goals}</td>
+      </tr>`).join('');
+
+    // Top assists
+    document.querySelector('#assists-table tbody').innerHTML = stats.topAssists.map((p, i) => `
+      <tr>
+        <td style="font-family:var(--font-mono); color:var(--ink-soft);">${i + 1}</td>
+        <td><strong>${p.name}</strong> <span style="font-family:var(--font-mono); font-size:0.72rem; color:var(--ink-soft);">#${p.number ?? '—'}</span></td>
+        <td class="num" style="font-family:var(--font-mono); font-weight:700; color:var(--crimson); font-size:1.1rem;">${p.assists}</td>
+      </tr>`).join('');
+
+    // Full squad table
+    const sorted = [...players].sort((a, b) => (a.number ?? 99) - (b.number ?? 99));
+    document.querySelector('#full-stats-table tbody').innerHTML = sorted.map(p => `
+      <tr>
+        <td style="font-family:var(--font-mono); color:var(--ink-soft);">${p.number ?? '—'}</td>
+        <td><strong>${p.name}</strong></td>
+        <td style="font-family:var(--font-mono); font-size:0.78rem; color:var(--crimson);">${POS[p.position] || p.position}</td>
+        <td style="font-family:var(--font-mono); font-size:0.78rem;">${p.nationality}</td>
+        <td class="num">${p.stats.appearances}</td>
+        <td class="num" style="font-weight:700;">${p.stats.goals}</td>
+        <td class="num" style="font-weight:700;">${p.stats.assists}</td>
+        <td class="num" style="color:var(--crimson); font-weight:700;">${p.stats.goals + p.stats.assists}</td>
+        <td class="num" style="color:#b8860b;">${p.stats.yellowCards}</td>
+        <td class="num" style="color:var(--crimson);">${p.stats.redCards}</td>
+      </tr>`).join('');
+  } catch (e) {
+    document.getElementById('club-record').innerHTML = '<div class="empty-state" style="grid-column:1/-1">Could not load stats right now.</div>';
+  }
+}
+
+document.addEventListener('DOMContentLoaded', loadStats);
+</script>
+</body>
+</html>

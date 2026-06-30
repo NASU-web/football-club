@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>History — NJUIT INT FC</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="masthead">
+  <div class="masthead-top">
+    <a href="index.html" class="brand">
+      <div class="crest"></div>
+      <div class="brand-name">NJUIT INT FC<small>NANJING &middot; EST. 2024</small></div>
+    </a>
+    <nav class="primary-nav">
+      <a href="index.html">Home</a>
+      <a href="players.html">Players</a>
+      <a href="stats.html">Stats</a>
+      <a href="fixtures.html">Fixtures</a>
+      <a href="lineup.html">Lineup</a>
+      <a href="history.html">History</a>
+      <a href="training.html">Training</a>
+      <a href="suggestions.html">Suggestions</a>
+      <a href="admin.html">Admin</a>
+    </nav>
+  </div>
+  <div class="ticker"><div class="ticker-track"><span>The weather man…</span></div></div>
+</header>
+
+<section class="tight" style="padding-top:48px;">
+  <div class="container">
+    <p class="eyebrow">Est. 2014</p>
+    <h1 style="font-size:clamp(2rem,4vw,3rem);">Club History</h1>
+    <p style="max-width:60ch;">From a kickabout in the North Quad to fourteen nations on one pitch. The story so far.</p>
+  </div>
+</section>
+
+<section class="tight">
+  <div class="container" style="max-width:760px;">
+    <div class="timeline" id="history-timeline">
+      <p style="color:var(--ink-soft);">Loading history&hellip;</p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <div class="foot-brand"><div class="crest"></div> NJUIT INT FC</div>
+    <small>&copy; <span class="this-year"></span> NJUIT International Football Club &middot; Newark, NJ</small>
+  </div>
+</footer>
+
+<script src="common.js"></script>
+<script>
+async function loadHistory() {
+  const timeline = document.getElementById('history-timeline');
+  try {
+    const history = await fetch('/api/history').then(r => r.json());
+    timeline.innerHTML = history.map(item => `
+      <div class="timeline-item">
+        <div class="year">${item.year}</div>
+        <h3>${item.title}</h3>
+        <p>${item.text}</p>
+      </div>`).join('');
+  } catch (e) {
+    timeline.innerHTML = '<div class="empty-state">Could not load club history right now.</div>';
+  }
+}
+
+document.addEventListener('DOMContentLoaded', loadHistory);
+</script>
+</body>
+</html>

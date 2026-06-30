@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Training — NJUIT INT FC</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="masthead">
+  <div class="masthead-top">
+    <a href="index.html" class="brand">
+      <div class="crest"></div>
+      <div class="brand-name">NJUIT INT FC<small>NANJING &middot; EST. 2024</small></div>
+    </a>
+    <nav class="primary-nav">
+      <a href="index.html">Home</a>
+      <a href="players.html">Players</a>
+      <a href="stats.html">Stats</a>
+      <a href="fixtures.html">Fixtures</a>
+      <a href="lineup.html">Lineup</a>
+      <a href="history.html">History</a>
+      <a href="training.html">Training</a>
+      <a href="suggestions.html">Suggestions</a>
+      <a href="admin.html">Admin</a>
+    </nav>
+  </div>
+  <div class="ticker"><div class="ticker-track"><span>The weather man…</span></div></div>
+</header>
+
+<section class="tight">
+  <div class="container">
+    <div class="section-head">
+      <div>
+        <p class="eyebrow">Weekly schedule</p>
+        <h1 style="font-size:clamp(1.8rem,3.4vw,2.6rem);">Training sessions</h1>
+      </div>
+    </div>
+    <div class="card" style="max-width:860px;">
+      <p style="margin-bottom:18px;">Here is the weekly training plan for the squad. Sessions are updated by the club admin when anything changes.</p>
+      <div id="training-list"><p>Loading training schedule…</p></div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <div class="foot-brand"><div class="crest"></div> NJUIT INT FC</div>
+    <small>&copy; <span class="this-year"></span> NJUIT International Football Club &middot; Newark, NJ</small>
+  </div>
+</footer>
+
+<script src="common.js"></script>
+<script>
+const DAY_ORDER = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+
+function renderTraining(items) {
+  const list = document.getElementById('training-list');
+  if (!items.length) {
+    list.innerHTML = '<p>No training sessions have been set yet.</p>';
+    return;
+  }
+  const sorted = [...items].sort((a, b) => (DAY_ORDER.indexOf(a.day) - DAY_ORDER.indexOf(b.day)) || a.time.localeCompare(b.time));
+  list.innerHTML = sorted.map(item => `
+    <div class="card" style="margin-bottom:12px; border-left:4px solid var(--crimson);">
+      <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:12px; align-items:center;">
+        <div>
+          <p class="eyebrow" style="margin-bottom:4px;">${item.day}</p>
+          <h3 style="margin-bottom:4px;">${item.type}</h3>
+          <p style="margin:0; color:var(--ink-soft);">${item.time}${item.location ? ` • ${item.location}` : ''}</p>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+async function loadTraining() {
+  try {
+    const data = await fetch('/api/training').then(r => r.json());
+    renderTraining(Array.isArray(data) ? data : []);
+  } catch (e) {
+    document.getElementById('training-list').innerHTML = '<p>Could not load the training schedule right now.</p>';
+  }
+}
+
+document.addEventListener('DOMContentLoaded', loadTraining);
+</script>
+</body>
+</html>

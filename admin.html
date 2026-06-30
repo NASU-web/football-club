@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin — NJUIT INT FC</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="masthead">
+  <div class="masthead-top">
+    <a href="index.html" class="brand">
+      <div class="crest"></div>
+      <div class="brand-name">NJUIT INT FC<small>NANJING &middot; EST. 2024</small></div>
+    </a>
+    <nav class="primary-nav">
+      <a href="index.html">Home</a>
+      <a href="players.html">Players</a>
+      <a href="stats.html">Stats</a>
+      <a href="fixtures.html">Fixtures</a>
+      <a href="lineup.html">Lineup</a>
+      <a href="history.html">History</a>
+      <a href="training.html">Training</a>
+      <a href="suggestions.html">Suggestions</a>
+      <a href="admin.html">Admin</a>
+    </nav>
+  </div>
+  <div class="ticker"><div class="ticker-track"><span>The weather man…</span></div></div>
+</header>
+
+<!-- LOGIN SCREEN -->
+<div id="login-screen" style="display:none; padding:80px 0;">
+  <div class="container">
+    <div class="login-box">
+      <p class="eyebrow" style="margin-bottom:8px;">Club Admin</p>
+      <h2 style="margin-bottom:20px;">Sign in</h2>
+      <div id="login-alert"></div>
+      <div class="form-grid" style="grid-template-columns:1fr;">
+        <div class="field">
+          <label for="login-user">Username</label>
+          <input id="login-user" type="text" autocomplete="username">
+        </div>
+        <div class="field">
+          <label for="login-pass">Password</label>
+          <input id="login-pass" type="password" autocomplete="current-password">
+        </div>
+        <div class="field">
+          <button id="login-btn" class="btn solid" type="button">Sign in</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ADMIN PANEL -->
+<div id="admin-panel" style="display:none;">
+  <section class="tight" style="padding-top:48px;">
+    <div class="container">
+      <div style="display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:12px;">
+        <div>
+          <p class="eyebrow">Club Admin</p>
+          <h1 style="font-size:clamp(1.8rem,3.5vw,2.8rem);">Dashboard</h1>
+        </div>
+        <div style="display:flex; align-items:center; gap:12px;">
+          <span id="admin-username" style="font-family:var(--font-mono); font-size:0.78rem; color:var(--ink-soft);"></span>
+          <button class="btn small crimson" id="logout-btn" type="button">Sign out</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="tight">
+    <div class="container">
+      <div class="card" style="max-width:760px; margin-bottom:24px;">
+        <h3 style="margin-bottom:12px;">Account settings</h3>
+        <div id="account-alert"></div>
+        <div class="form-grid">
+          <div class="field">
+            <label for="acct-current-pass">Current password</label>
+            <input id="acct-current-pass" type="password" autocomplete="current-password">
+          </div>
+          <div class="field">
+            <label for="acct-new-user">New username (optional)</label>
+            <input id="acct-new-user" type="text" autocomplete="username" placeholder="Leave blank to keep current username">
+          </div>
+          <div class="field">
+            <label for="acct-new-pass">New password (optional)</label>
+            <input id="acct-new-pass" type="password" autocomplete="new-password" placeholder="Leave blank to keep current password">
+          </div>
+          <div class="field full">
+            <button class="btn solid" id="account-save-btn" type="button">Update account</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="admin-tabs">
+        <button class="active" data-tab="players">Players</button>
+        <button data-tab="fixtures">Fixtures</button>
+        <button data-tab="lineup">Lineup</button>
+        <button data-tab="history">History</button>
+        <button data-tab="records">Club records</button>
+        <button data-tab="training">Training</button>
+        <button data-tab="home-next">Home next up</button>
+        <button data-tab="announcement">Announcement</button>
+        <button data-tab="suggestions">Suggestions</button>
+      </div>
+
+      <!-- PLAYERS TAB -->
+      <div id="tab-players">
+        <div class="section-head">
+          <h2>All players</h2>
+          <span id="pending-badge" style="font-family:var(--font-mono); font-size:0.72rem; color:var(--crimson);"></span>
+        </div>
+        <div id="players-alert" style="margin-bottom:16px;"></div>
+        <div id="players-list"><p style="color:var(--ink-soft);">Loading&hellip;</p></div>
+      </div>
+
+      <!-- FIXTURES TAB -->
+      <div id="tab-fixtures" style="display:none;">
+        <div class="section-head">
+          <h2>All fixtures</h2>
+          <button class="btn small solid" id="add-fixture-btn" type="button">+ Add fixture</button>
+        </div>
+
+        <div id="fixture-form-wrap" style="display:none; margin-bottom:32px;">
+          <div class="card" style="max-width:700px;">
+            <h3 id="fixture-form-title" style="margin-bottom:18px;">New fixture</h3>
+            <div id="fixture-alert"></div>
+            <div class="form-grid">
+              <div class="field">
+                <label for="fx-opponent">Opponent</label>
+                <input id="fx-opponent" type="text" required>
+              </div>
+              <div class="field">
+                <label for="fx-competition">Competition</label>
+                <input id="fx-competition" type="text" placeholder="NJ Collegiate League">
+              </div>
+              <div class="field">
+                <label for="fx-date">Date &amp; time</label>
+                <input id="fx-date" type="datetime-local">
+              </div>
+              <div class="field">
+                <label for="fx-venue">Venue</label>
+                <select id="fx-venue">
+                  <option value="home">Home</option>
+                  <option value="away">Away</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="fx-location">Location</label>
+                <input id="fx-location" type="text" placeholder="Newark, NJ">
+              </div>
+              <div class="field">
+                <label for="fx-status">Status</label>
+                <select id="fx-status">
+                  <option value="scheduled">Scheduled</option>
+                  <option value="played">Played</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="fx-score-for">Score (for)</label>
+                <input id="fx-score-for" type="number" min="0" placeholder="—">
+              </div>
+              <div class="field">
+                <label for="fx-score-against">Score (against)</label>
+                <input id="fx-score-against" type="number" min="0" placeholder="—">
+              </div>
+              <div class="field full" style="flex-direction:row; gap:10px; flex-wrap:wrap;">
+                <button class="btn solid" id="fixture-save-btn" type="button">Save fixture</button>
+                <button class="btn" id="fixture-cancel-btn" type="button">Cancel</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="fixtures-list"><p style="color:var(--ink-soft);">Loading&hellip;</p></div>
+      </div>
+
+      <!-- LINEUP TAB -->
+      <div id="tab-lineup" style="display:none;">
+        <div class="section-head"><h2>Edit lineup</h2></div>
+        <div class="card" style="max-width:700px;" id="lineup-edit-card">
+          <div id="lineup-alert"></div>
+          <div class="form-grid">
+            <div class="field">
+              <label for="lu-formation">Formation</label>
+              <select id="lu-formation">
+                <option>4-3-3</option>
+                <option>4-4-2</option>
+                <option>4-2-3-1</option>
+                <option>3-5-2</option>
+                <option>5-3-2</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="lu-fixture">Fixture ID</label>
+              <select id="lu-fixture"></select>
+            </div>
+            <div class="field">
+              <label for="lu-captain">Captain</label>
+              <select id="lu-captain"></select>
+            </div>
+            <div class="field full">
+              <label>Starting XI (player IDs, comma-separated)</label>
+              <textarea id="lu-xi" rows="4" style="font-family:var(--font-mono); font-size:0.82rem; resize:vertical;"></textarea>
+              <p class="form-note">Enter player IDs in pitch order (GK first). Current: loaded from lineup.json.</p>
+            </div>
+            <div class="field full">
+              <label>Substitutes (player IDs, comma-separated)</label>
+              <input id="lu-subs" type="text" style="font-family:var(--font-mono); font-size:0.82rem;">
+            </div>
+            <div class="field full">
+              <button class="btn solid" id="lineup-save-btn" type="button">Save lineup</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- HOME NEXT UP TAB -->
+      <div id="tab-home-next" style="display:none;">
+        <div class="section-head"><h2>Home “Next up”</h2></div>
+        <div id="home-next-alert" style="margin-bottom:16px;"></div>
+        <div class="card" style="max-width:760px;">
+          <div class="form-grid">
+            <div class="field full">
+              <label for="home-next-mode">Display</label>
+              <select id="home-next-mode">
+                <option value="fixture">Fixture</option>
+                <option value="message">Custom message</option>
+              </select>
+            </div>
+            <div class="field full">
+              <label for="home-next-fixture">Fixture</label>
+              <select id="home-next-fixture"></select>
+            </div>
+            <div class="field full">
+              <label for="home-next-message">Message</label>
+              <textarea id="home-next-message" rows="3" placeholder="e.g. Training session moved to Friday"></textarea>
+            </div>
+            <div class="field full">
+              <label for="home-next-announcement">Announcement banner (optional)</label>
+              <textarea id="home-next-announcement" rows="2" placeholder="e.g. Please arrive 15 minutes early for training"></textarea>
+            </div>
+            <div class="field full" style="flex-direction:row; align-items:center; gap:10px;">
+              <input id="home-next-show-announcement" type="checkbox">
+              <label for="home-next-show-announcement" style="margin:0;">Show this announcement on the home page</label>
+            </div>
+            <div class="field full">
+              <button class="btn solid" id="home-next-save-btn" type="button">Save home next up</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ANNOUNCEMENT TAB -->
+      <div id="tab-announcement" style="display:none;">
+        <div class="section-head"><h2>Home announcement</h2></div>
+        <div id="announcement-alert" style="margin-bottom:16px;"></div>
+        <div class="card" style="max-width:760px;">
+          <div class="form-grid">
+            <div class="field full">
+              <label for="announcement-message">Message</label>
+              <textarea id="announcement-message" rows="3" placeholder="e.g. Training moved to Friday"></textarea>
+            </div>
+            <div class="field full" style="flex-direction:row; align-items:center; gap:10px;">
+              <input id="announcement-show" type="checkbox">
+              <label for="announcement-show" style="margin:0;">Show this announcement on the home page</label>
+            </div>
+            <div class="field full">
+              <button class="btn solid" id="announcement-save-btn" type="button">Save announcement</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SUGGESTIONS TAB -->
+      <div id="tab-suggestions" style="display:none;">
+        <div class="section-head"><h2>Suggestions inbox</h2></div>
+        <div id="suggestions-alert" style="margin-bottom:16px;"></div>
+        <div id="suggestions-list"><p style="color:var(--ink-soft);">Loading&hellip;</p></div>
+      </div>
+
+      <!-- CLUB RECORDS TAB -->
+      <div id="tab-records" style="display:none;">
+        <div class="section-head"><h2>Club records</h2></div>
+        <div id="records-alert" style="margin-bottom:16px;"></div>
+        <div class="card" style="max-width:760px;">
+          <div class="form-grid">
+            <div class="field">
+              <label for="rec-played">Matches played</label>
+              <input id="rec-played" type="number" min="0">
+            </div>
+            <div class="field">
+              <label for="rec-wins">Wins</label>
+              <input id="rec-wins" type="number" min="0">
+            </div>
+            <div class="field">
+              <label for="rec-draws">Draws</label>
+              <input id="rec-draws" type="number" min="0">
+            </div>
+            <div class="field">
+              <label for="rec-losses">Losses</label>
+              <input id="rec-losses" type="number" min="0">
+            </div>
+            <div class="field">
+              <label for="rec-goals-for">Goals for</label>
+              <input id="rec-goals-for" type="number" min="0">
+            </div>
+            <div class="field">
+              <label for="rec-goals-against">Goals against</label>
+              <input id="rec-goals-against" type="number" min="0">
+            </div>
+            <div class="field full">
+              <button class="btn solid" id="records-save-btn" type="button">Save club records</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TRAINING TAB -->
+      <div id="tab-training" style="display:none;">
+        <div class="section-head">
+          <h2>Training schedule</h2>
+          <button class="btn small solid" id="add-training-btn" type="button">+ Add session</button>
+        </div>
+        <div id="training-alert" style="margin-bottom:16px;"></div>
+        <div id="training-edit-list"></div>
+        <div style="margin-top:24px;">
+          <button class="btn solid" id="training-save-btn" type="button">Save training schedule</button>
+        </div>
+      </div>
+
+      <!-- HISTORY TAB -->
+      <div id="tab-history" style="display:none;">
+        <div class="section-head">
+          <h2>Club milestones</h2>
+          <button class="btn small solid" id="add-milestone-btn" type="button">+ Add milestone</button>
+        </div>
+        <div id="history-alert" style="margin-bottom:16px;"></div>
+        <div id="history-edit-list"></div>
+        <div style="margin-top:24px;">
+          <button class="btn solid" id="history-save-btn" type="button">Save all milestones</button>
+        </div>
+      </div>
+
+    </div>
+  </section>
+</div>
+
+<footer>
+  <div class="container">
+    <div class="foot-brand"><div class="crest"></div> NJUIT INT FC</div>
+    <small>&copy; <span class="this-year"></span> NJUIT International Football Club &middot; Newark, NJ</small>
+  </div>
+</footer>
+
+<script src="common.js"></script>
+<script>
+// ---- State ----
+let ALL_PLAYERS_ADMIN = [];
+let ALL_FIXTURES = [];
+let CURRENT_LINEUP = null;
+let EDITING_FIXTURE_ID = null;
+
+// ---- Helpers ----
+function showMsg(id, msg, ok) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.innerHTML = `<div class="alert${ok ? ' success' : ''}">${msg}</div>`;
+  setTimeout(() => { el.innerHTML = ''; }, 4000);
+}
+
+async function api(method, url, body) {
+  const opts = { method, headers: { 'Content-Type': 'application/json' } };
+  if (body !== undefined) opts.body = JSON.stringify(body);
+  const r = await fetch(url, opts);
+  const data = await r.json();
+  if (!r.ok) throw new Error(data.error || 'Request failed');
+  return data;
+}
+
+// ---- Auth ----
+async function checkAuth() {
+  const me = await fetch('/api/auth/me').then(r => r.json());
+  if (me.isAdmin) {
+    showAdmin(me.username);
+  } else {
+    document.getElementById('login-screen').style.display = 'block';
+  }
+}
+
+function showAdmin(username) {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('admin-panel').style.display = 'block';
+  document.getElementById('admin-username').textContent = username;
+  loadPlayersTab();
+}
+
+document.getElementById('login-btn').addEventListener('click', async () => {
+  const username = document.getElementById('login-user').value.trim();
+  const password = document.getElementById('login-pass').value;
+  try {
+    const data = await api('POST', '/api/auth/login', { username, password });
+    showAdmin(data.username);
+  } catch (e) {
+    document.getElementById('login-alert').innerHTML = `<div class="alert">${e.message}</div>`;
+  }
+});
+
+document.getElementById('login-pass').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('login-btn').click();
+});
+
+document.getElementById('logout-btn').addEventListener('click', async () => {
+  await api('POST', '/api/auth/logout');
+  location.reload();
+});
+
+document.getElementById('account-save-btn').addEventListener('click', async () => {
+  const currentPassword = document.getElementById('acct-current-pass').value;
+  const newUsername = document.getElementById('acct-new-user').value.trim();
+  const newPassword = document.getElementById('acct-new-pass').value;
+
+  if (!currentPassword) {
+    showMsg('account-alert', 'Enter your current password to make changes.', false);
+    return;
+  }
+
+  if (!newUsername && !newPassword) {
+    showMsg('account-alert', 'Enter a new username or new password.', false);
+    return;
+  }
+
+  try {
+    const data = await api('POST', '/api/auth/change-credentials', {
+      currentPassword,
+      newUsername,
+      newPassword
+    });
+    document.getElementById('acct-current-pass').value = '';
+    document.getElementById('acct-new-user').value = '';
+    document.getElementById('acct-new-pass').value = '';
+    document.getElementById('admin-username').textContent = data.username;
+    showMsg('account-alert', 'Account updated successfully.', true);
+  } catch (e) {
+    showMsg('account-alert', e.message, false);
+  }
+});
+
+// ---- Tabs ----
+document.querySelectorAll('.admin-tabs button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.admin-tabs button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    ['players', 'fixtures', 'lineup', 'history', 'records', 'training', 'home-next', 'announcement', 'suggestions'].forEach(t => {
+      document.getElementById('tab-' + t).style.display = t === btn.dataset.tab ? 'block' : 'none';
+    });
+    if (btn.dataset.tab === 'fixtures') loadFixturesTab();
+    if (btn.dataset.tab === 'lineup') loadLineupTab();
+    if (btn.dataset.tab === 'history') loadHistoryTab();
+    if (btn.dataset.tab === 'records') loadClubRecords();
+    if (btn.dataset.tab === 'training') loadTrainingTab();
+    if (btn.dataset.tab === 'home-next') loadHomeNext();
+    if (btn.dataset.tab === 'announcement') loadAnnouncementSettings();
+    if (btn.dataset.tab === 'suggestions') loadSuggestionsTab();
+  });
+});
+
+// ---- PLAYERS TAB ----
+async function loadPlayersTab() {
+  try {
+    ALL_PLAYERS_ADMIN = await fetch('/api/players?all=1').then(r => r.json());
+    const pending = ALL_PLAYERS_ADMIN.filter(p => p.status === 'pending');
+    const badge = document.getElementById('pending-badge');
+    badge.textContent = pending.length ? `${pending.length} pending approval` : '';
+
+    const POS = { Goalkeeper: 'GK', Defender: 'DF', Midfielder: 'MF', Forward: 'FW' };
+    document.getElementById('players-list').innerHTML = ALL_PLAYERS_ADMIN
+      .sort((a, b) => {
+        if (a.status === 'pending' && b.status !== 'pending') return -1;
+        if (b.status === 'pending' && a.status !== 'pending') return 1;
+        return (a.number ?? 99) - (b.number ?? 99);
+      })
+      .map(p => `
+        <div class="admin-row" style="align-items:flex-start; gap:16px; flex-wrap:wrap;">
+          <div style="display:flex; align-items:center; gap:14px; flex:1; min-width:240px;">
+            <span style="font-family:var(--font-mono); font-weight:700; font-size:1rem; color:var(--navy); width:28px; text-align:right;">${p.number ?? '—'}</span>
+            <div>
+              <strong>${p.name}</strong>
+              <span class="badge ${p.status}">${p.status}</span>
+              <div style="font-family:var(--font-mono); font-size:0.7rem; color:var(--ink-soft);">${POS[p.position] || p.position} &middot; ${p.nationality} &middot; ${p.year}</div>
+            </div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:8px; min-width:260px;">
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+              ${p.status === 'pending' ? `<button class="btn small solid" onclick="approvePlayer('${p.id}')">Approve</button>` : ''}
+              <button class="btn small crimson" onclick="deletePlayer('${p.id}', '${p.name.replace(/'/g,"\\'")}')">Remove</button>
+            </div>
+            <form class="stats-form" onsubmit="event.preventDefault(); savePlayerStats('${p.id}', this); return false;" style="display:grid; grid-template-columns:repeat(5, minmax(70px, 1fr)); gap:6px; align-items:end;">
+              <label style="font-size:0.68rem; color:var(--ink-soft);">
+                Apps
+                <input type="number" min="0" step="1" value="${p.stats?.appearances ?? 0}" name="appearances" style="width:100%; margin-top:4px;">
+              </label>
+              <label style="font-size:0.68rem; color:var(--ink-soft);">
+                Goals
+                <input type="number" min="0" step="1" value="${p.stats?.goals ?? 0}" name="goals" style="width:100%; margin-top:4px;">
+              </label>
+              <label style="font-size:0.68rem; color:var(--ink-soft);">
+                Assists
+                <input type="number" min="0" step="1" value="${p.stats?.assists ?? 0}" name="assists" style="width:100%; margin-top:4px;">
+              </label>
+              <label style="font-size:0.68rem; color:var(--ink-soft);">
+                Yellows
+                <input type="number" min="0" step="1" value="${p.stats?.yellowCards ?? 0}" name="yellowCards" style="width:100%; margin-top:4px;">
+              </label>
+              <label style="font-size:0.68rem; color:var(--ink-soft);">
+                Reds
+                <input type="number" min="0" step="1" value="${p.stats?.redCards ?? 0}" name="redCards" style="width:100%; margin-top:4px;">
+              </label>
+              <label style="font-size:0.68rem; color:var(--ink-soft); grid-column:1 / -1;">
+                Photo URL or image path
+                <input type="text" value="${p.photo || ''}" name="photo" placeholder="https://... or /images/player.jpg" style="width:100%; margin-top:4px;">
+              </label>
+              <button class="btn small solid" type="submit" style="grid-column:1 / -1;">Save stats</button>
+            </form>
+          </div>
+        </div>`).join('');
+  } catch (e) {
+    document.getElementById('players-list').innerHTML = '<div class="empty-state">Could not load players.</div>';
+  }
+}
+
+async function approvePlayer(id) {
+  try {
+    await api('PUT', '/api/players/' + id, { status: 'approved' });
+    loadPlayersTab();
+  } catch (e) { alert(e.message); }
+}
+
+async function savePlayerStats(id, form) {
+  try {
+    const payload = {
+      stats: {
+        appearances: Number(form.elements.appearances.value || 0),
+        goals: Number(form.elements.goals.value || 0),
+        assists: Number(form.elements.assists.value || 0),
+        yellowCards: Number(form.elements.yellowCards.value || 0),
+        redCards: Number(form.elements.redCards.value || 0)
+      },
+      photo: form.elements.photo?.value?.trim() || ''
+    };
+    await api('PUT', '/api/players/' + id, payload);
+    showMsg('players-alert', 'Player stats updated.', true);
+    loadPlayersTab();
+  } catch (e) {
+    showMsg('players-alert', e.message, false);
+  }
+}
+
+async function deletePlayer(id, name) {
+  if (!confirm(`Remove ${name} from the roster? This cannot be undone.`)) return;
+  try {
+    await api('DELETE', '/api/players/' + id);
+    loadPlayersTab();
+  } catch (e) { alert(e.message); }
+}
+
+// ---- FIXTURES TAB ----
+async function loadFixturesTab() {
+  try {
+    ALL_FIXTURES = await fetch('/api/fixtures').then(r => r.json());
+    document.getElementById('fixtures-list').innerHTML = ALL_FIXTURES
+      .sort((a, b) => new Date(a.date) - new Date(b.date))
+      .map(f => {
+        const d = new Date(f.date);
+        const dateStr = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + ' ' + d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+        const score = f.result ? `${f.result.for}–${f.result.against}` : '—';
+        return `
+          <div class="admin-row">
+            <div>
+              <strong>${f.opponent}</strong>
+              <span style="font-family:var(--font-mono); font-size:0.68rem; border:1px solid var(--line); padding:1px 6px; margin-left:6px;">${f.status}</span>
+              <div style="font-family:var(--font-mono); font-size:0.72rem; color:var(--ink-soft);">${dateStr} &middot; ${f.venue} &middot; ${f.competition}</div>
+              ${f.result ? `<div style="font-family:var(--font-mono); font-size:0.9rem; font-weight:700; color:var(--crimson);">${score}</div>` : ''}
+            </div>
+            <div style="display:flex; gap:8px;">
+              <button class="btn small" onclick="editFixture('${f.id}')">Edit</button>
+              <button class="btn small crimson" onclick="deleteFixture('${f.id}', '${f.opponent.replace(/'/g,"\\'")}')">Delete</button>
+            </div>
+          </div>`;
+      }).join('') || '<div class="empty-state">No fixtures yet.</div>';
+  } catch (e) {
+    document.getElementById('fixtures-list').innerHTML = '<div class="empty-state">Could not load fixtures.</div>';
+  }
+}
+
+function toLocalDatetimeValue(isoStr) {
+  const d = new Date(isoStr);
+  return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+}
+
+document.getElementById('add-fixture-btn').addEventListener('click', () => {
+  EDITING_FIXTURE_ID = null;
+  document.getElementById('fixture-form-title').textContent = 'New fixture';
+  ['fx-opponent','fx-competition','fx-location'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('fx-date').value = '';
+  document.getElementById('fx-venue').value = 'home';
+  document.getElementById('fx-status').value = 'scheduled';
+  document.getElementById('fx-score-for').value = '';
+  document.getElementById('fx-score-against').value = '';
+  document.getElementById('fixture-form-wrap').style.display = 'block';
+});
+
+function editFixture(id) {
+  const f = ALL_FIXTURES.find(x => x.id === id);
+  if (!f) return;
+  EDITING_FIXTURE_ID = id;
+  document.getElementById('fixture-form-title').textContent = 'Edit fixture';
+  document.getElementById('fx-opponent').value = f.opponent || '';
+  document.getElementById('fx-competition').value = f.competition || '';
+  document.getElementById('fx-date').value = f.date ? toLocalDatetimeValue(f.date) : '';
+  document.getElementById('fx-venue').value = f.venue || 'home';
+  document.getElementById('fx-location').value = f.location || '';
+  document.getElementById('fx-status').value = f.status || 'scheduled';
+  document.getElementById('fx-score-for').value = f.result?.for ?? '';
+  document.getElementById('fx-score-against').value = f.result?.against ?? '';
+  document.getElementById('fixture-form-wrap').style.display = 'block';
+  document.getElementById('fixture-form-wrap').scrollIntoView({ behavior: 'smooth' });
+}
+
+document.getElementById('fixture-cancel-btn').addEventListener('click', () => {
+  document.getElementById('fixture-form-wrap').style.display = 'none';
+  EDITING_FIXTURE_ID = null;
+});
+
+document.getElementById('fixture-save-btn').addEventListener('click', async () => {
+  const status = document.getElementById('fx-status').value;
+  const gf = document.getElementById('fx-score-for').value;
+  const ga = document.getElementById('fx-score-against').value;
+  const payload = {
+    opponent: document.getElementById('fx-opponent').value.trim(),
+    competition: document.getElementById('fx-competition').value.trim(),
+    date: new Date(document.getElementById('fx-date').value).toISOString(),
+    venue: document.getElementById('fx-venue').value,
+    location: document.getElementById('fx-location').value.trim(),
+    status,
+    result: (status === 'played' && gf !== '' && ga !== '')
+      ? { for: Number(gf), against: Number(ga) }
+      : null
+  };
+  try {
+    if (EDITING_FIXTURE_ID) {
+      await api('PUT', '/api/fixtures/' + EDITING_FIXTURE_ID, payload);
+      showMsg('fixture-alert', 'Fixture updated.', true);
+    } else {
+      await api('POST', '/api/fixtures', payload);
+      showMsg('fixture-alert', 'Fixture added.', true);
+    }
+    document.getElementById('fixture-form-wrap').style.display = 'none';
+    EDITING_FIXTURE_ID = null;
+    loadFixturesTab();
+  } catch (e) {
+    showMsg('fixture-alert', e.message, false);
+  }
+});
+
+async function deleteFixture(id, name) {
+  if (!confirm(`Delete fixture vs ${name}?`)) return;
+  try {
+    await api('DELETE', '/api/fixtures/' + id);
+    loadFixturesTab();
+  } catch (e) { alert(e.message); }
+}
+
+// ---- LINEUP TAB ----
+async function loadLineupTab() {
+  try {
+    const [lineup, players, fixtures] = await Promise.all([
+      fetch('/api/lineup').then(r => r.json()),
+      fetch('/api/players').then(r => r.json()),
+      fetch('/api/fixtures').then(r => r.json())
+    ]);
+    CURRENT_LINEUP = lineup;
+
+    // Fixture select
+    const fxSel = document.getElementById('lu-fixture');
+    fxSel.innerHTML = fixtures.map(f => `<option value="${f.id}"${f.id === lineup.fixtureId ? ' selected' : ''}>${f.opponent} (${new Date(f.date).toLocaleDateString()})</option>`).join('');
+
+    // Captain select
+    const capSel = document.getElementById('lu-captain');
+    capSel.innerHTML = players.map(p => `<option value="${p.id}"${p.id === lineup.captain ? ' selected' : ''}>${p.name} (#${p.number ?? '?'})</option>`).join('');
+
+    document.getElementById('lu-formation').value = lineup.formation;
+    document.getElementById('lu-xi').value = lineup.startingXI.map(s => s.playerId).join(', ');
+    document.getElementById('lu-subs').value = (lineup.substitutes || []).join(', ');
+  } catch (e) {
+    showMsg('lineup-alert', 'Could not load lineup.', false);
+  }
+}
+
+document.getElementById('lineup-save-btn').addEventListener('click', async () => {
+  try {
+    const xiIds = document.getElementById('lu-xi').value.split(',').map(s => s.trim()).filter(Boolean);
+    const subsIds = document.getElementById('lu-subs').value.split(',').map(s => s.trim()).filter(Boolean);
+    const existing = (CURRENT_LINEUP?.startingXI || []);
+    const startingXI = xiIds.map((id, i) => {
+      const prev = existing.find(s => s.playerId === id);
+      return prev || { playerId: id, x: 50, y: Math.round(10 + (i / 10) * 80) };
+    });
+    const payload = {
+      formation: document.getElementById('lu-formation').value,
+      fixtureId: document.getElementById('lu-fixture').value,
+      captain: document.getElementById('lu-captain').value,
+      startingXI,
+      substitutes: subsIds
+    };
+    await api('PUT', '/api/lineup', payload);
+    showMsg('lineup-alert', 'Lineup saved.', true);
+    CURRENT_LINEUP = { ...CURRENT_LINEUP, ...payload };
+  } catch (e) {
+    showMsg('lineup-alert', e.message, false);
+  }
+});
+
+// ---- HOME NEXT UP TAB ----
+async function loadHomeNext() {
+  try {
+    const [homeNext, fixtures] = await Promise.all([
+      fetch('/api/home-next').then(r => r.json()),
+      fetch('/api/fixtures').then(r => r.json())
+    ]);
+    const fixtureSelect = document.getElementById('home-next-fixture');
+    fixtureSelect.innerHTML = fixtures.map(f => `<option value="${f.id}"${f.id === homeNext.fixtureId ? ' selected' : ''}>${f.opponent} (${new Date(f.date).toLocaleDateString()})</option>`).join('');
+    document.getElementById('home-next-mode').value = homeNext.mode || 'fixture';
+    document.getElementById('home-next-message').value = homeNext.message || '';
+    document.getElementById('home-next-announcement').value = homeNext.announcement || '';
+    document.getElementById('home-next-show-announcement').checked = !!homeNext.showAnnouncement;
+  } catch (e) {
+    showMsg('home-next-alert', 'Could not load home next-up settings.', false);
+  }
+}
+
+document.getElementById('home-next-save-btn').addEventListener('click', async () => {
+  try {
+    const payload = {
+      mode: document.getElementById('home-next-mode').value,
+      fixtureId: document.getElementById('home-next-fixture').value,
+      message: document.getElementById('home-next-message').value.trim(),
+      announcement: document.getElementById('home-next-announcement').value.trim(),
+      showAnnouncement: document.getElementById('home-next-show-announcement').checked
+    };
+    await api('PUT', '/api/home-next', payload);
+    showMsg('home-next-alert', 'Home next-up updated.', true);
+  } catch (e) {
+    showMsg('home-next-alert', e.message, false);
+  }
+});
+
+// ---- SUGGESTIONS TAB ----
+async function loadSuggestionsTab() {
+  try {
+    const suggestions = await fetch('/api/suggestions').then(r => r.json());
+    if (!Array.isArray(suggestions) || !suggestions.length) {
+      document.getElementById('suggestions-list').innerHTML = '<div class="empty-state">No suggestions yet.</div>';
+      return;
+    }
+    document.getElementById('suggestions-list').innerHTML = suggestions
+      .slice().reverse()
+      .map(s => `
+        <div class="card" style="margin-bottom:12px;">
+          <div style="display:flex; justify-content:flex-end; gap:12px; flex-wrap:wrap; margin-bottom:8px;">
+            <span style="font-family:var(--font-mono); font-size:0.72rem; color:var(--ink-soft);">${new Date(s.createdAt).toLocaleString()}</span>
+          </div>
+          <p style="margin:0;">${s.message}</p>
+        </div>`).join('');
+  } catch (e) {
+    showMsg('suggestions-alert', 'Could not load suggestions.', false);
+  }
+}
+
+// ---- ANNOUNCEMENT TAB ----
+async function loadAnnouncementSettings() {
+  try {
+    const data = await fetch('/api/announcement').then(r => r.json());
+    document.getElementById('announcement-message').value = data.message || '';
+    document.getElementById('announcement-show').checked = !!data.show;
+  } catch (e) {
+    showMsg('announcement-alert', 'Could not load announcement settings.', false);
+  }
+}
+
+document.getElementById('announcement-save-btn').addEventListener('click', async () => {
+  try {
+    await api('PUT', '/api/announcement', {
+      message: document.getElementById('announcement-message').value.trim(),
+      show: document.getElementById('announcement-show').checked
+    });
+    showMsg('announcement-alert', 'Announcement saved.', true);
+  } catch (e) {
+    showMsg('announcement-alert', e.message, false);
+  }
+});
+
+// ---- TRAINING TAB ----
+let TRAINING_SESSIONS = [];
+
+function renderTrainingEditor() {
+  const wrap = document.getElementById('training-edit-list');
+  if (!wrap) return;
+  wrap.innerHTML = TRAINING_SESSIONS.map((item, idx) => `
+    <div class="card" style="margin-bottom:12px;">
+      <div class="form-grid">
+        <div class="field">
+          <label>Day</label>
+          <select data-index="${idx}" data-field="day">
+            ${['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'].map(day => `<option value="${day}" ${item.day===day?'selected':''}>${day}</option>`).join('')}
+          </select>
+        </div>
+        <div class="field">
+          <label>Type</label>
+          <input data-index="${idx}" data-field="type" value="${item.type || ''}" placeholder="Technical / Fitness / Match prep">
+        </div>
+        <div class="field">
+          <label>Time</label>
+          <input data-index="${idx}" data-field="time" value="${item.time || ''}" placeholder="18:30">
+        </div>
+        <div class="field">
+          <label>Location</label>
+          <input data-index="${idx}" data-field="location" value="${item.location || ''}" placeholder="Pitch A">
+        </div>
+        <div class="field full">
+          <button class="btn small crimson" type="button" onclick="removeTrainingSession(${idx})">Remove</button>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function removeTrainingSession(index) {
+  TRAINING_SESSIONS.splice(index, 1);
+  renderTrainingEditor();
+}
+
+async function loadTrainingTab() {
+  try {
+    TRAINING_SESSIONS = await fetch('/api/training').then(r => r.json());
+    if (!Array.isArray(TRAINING_SESSIONS)) TRAINING_SESSIONS = [];
+    renderTrainingEditor();
+  } catch (e) {
+    showMsg('training-alert', 'Could not load training schedule.', false);
+    TRAINING_SESSIONS = [];
+  }
+}
+
+document.getElementById('add-training-btn').addEventListener('click', () => {
+  TRAINING_SESSIONS.push({ day: 'Monday', type: 'Technical', time: '18:30', location: 'Main pitch' });
+  renderTrainingEditor();
+});
+
+document.getElementById('training-save-btn').addEventListener('click', async () => {
+  const wrap = document.getElementById('training-edit-list');
+  const inputs = wrap.querySelectorAll('[data-index][data-field]');
+  const updated = TRAINING_SESSIONS.map((item, idx) => ({ ...item }));
+  inputs.forEach(input => {
+    const i = Number(input.dataset.index);
+    const field = input.dataset.field;
+    updated[i][field] = input.value.trim();
+  });
+  try {
+    await api('PUT', '/api/training', updated);
+    showMsg('training-alert', 'Training schedule saved.', true);
+  } catch (e) {
+    showMsg('training-alert', e.message, false);
+  }
+});
+
+// ---- CLUB RECORDS TAB ----
+async function loadClubRecords() {
+  try {
+    const data = await fetch('/api/club-records').then(r => r.json());
+    document.getElementById('rec-played').value = data.played ?? '';
+    document.getElementById('rec-wins').value = data.wins ?? '';
+    document.getElementById('rec-draws').value = data.draws ?? '';
+    document.getElementById('rec-losses').value = data.losses ?? '';
+    document.getElementById('rec-goals-for').value = data.goalsFor ?? '';
+    document.getElementById('rec-goals-against').value = data.goalsAgainst ?? '';
+  } catch (e) {
+    showMsg('records-alert', 'Could not load club records.', false);
+  }
+}
+
+document.getElementById('records-save-btn').addEventListener('click', async () => {
+  try {
+    const payload = {
+      played: Number(document.getElementById('rec-played').value || 0),
+      wins: Number(document.getElementById('rec-wins').value || 0),
+      draws: Number(document.getElementById('rec-draws').value || 0),
+      losses: Number(document.getElementById('rec-losses').value || 0),
+      goalsFor: Number(document.getElementById('rec-goals-for').value || 0),
+      goalsAgainst: Number(document.getElementById('rec-goals-against').value || 0)
+    };
+    await api('PUT', '/api/club-records', payload);
+    showMsg('records-alert', 'Club records updated.', true);
+  } catch (e) {
+    showMsg('records-alert', e.message, false);
+  }
+});
+
+// ---- HISTORY TAB ----
+let HISTORY_DATA = [];
+
+async function loadHistoryTab() {
+  try {
+    HISTORY_DATA = await fetch('/api/history').then(r => r.json());
+    renderHistoryEditor();
+  } catch (e) {
+    showMsg('history-alert', 'Could not load history.', false);
+  }
+}
+
+function renderHistoryEditor() {
+  document.getElementById('history-edit-list').innerHTML = HISTORY_DATA.map((item, i) => `
+    <div class="card" style="margin-bottom:16px;" id="milestone-${i}">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <strong style="font-family:var(--font-mono);">Milestone ${i + 1}</strong>
+        <button class="btn small crimson" onclick="removeMilestone(${i})">Remove</button>
+      </div>
+      <div class="form-grid">
+        <div class="field">
+          <label>Year</label>
+          <input type="text" value="${item.year}" oninput="updateMilestone(${i},'year',this.value)">
+        </div>
+        <div class="field">
+          <label>Title</label>
+          <input type="text" value="${item.title}" oninput="updateMilestone(${i},'title',this.value)">
+        </div>
+        <div class="field full">
+          <label>Text</label>
+          <textarea rows="3" style="resize:vertical;" oninput="updateMilestone(${i},'text',this.value)">${item.text}</textarea>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function updateMilestone(i, key, val) { HISTORY_DATA[i][key] = val; }
+
+function removeMilestone(i) {
+  if (!confirm('Remove this milestone?')) return;
+  HISTORY_DATA.splice(i, 1);
+  renderHistoryEditor();
+}
+
+document.getElementById('add-milestone-btn').addEventListener('click', () => {
+  HISTORY_DATA.push({ year: String(new Date().getFullYear()), title: '', text: '' });
+  renderHistoryEditor();
+  document.getElementById('history-edit-list').lastElementChild?.scrollIntoView({ behavior: 'smooth' });
+});
+
+document.getElementById('history-save-btn').addEventListener('click', async () => {
+  try {
+    await api('PUT', '/api/history', HISTORY_DATA);
+    showMsg('history-alert', 'History saved.', true);
+  } catch (e) {
+    showMsg('history-alert', e.message, false);
+  }
+});
+
+// ---- Init ----
+document.addEventListener('DOMContentLoaded', checkAuth);
+</script>
+</body>
+</html>

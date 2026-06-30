@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Suggestions — NJUIT INT FC</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="masthead">
+  <div class="masthead-top">
+    <a href="index.html" class="brand">
+      <div class="crest"></div>
+      <div class="brand-name">NJUIT INT FC<small>NANJING &middot; EST. 2024</small></div>
+    </a>
+    <nav class="primary-nav">
+      <a href="index.html">Home</a>
+      <a href="players.html">Players</a>
+      <a href="stats.html">Stats</a>
+      <a href="fixtures.html">Fixtures</a>
+      <a href="lineup.html">Lineup</a>
+      <a href="history.html">History</a>
+      <a href="training.html">Training</a>
+      <a href="admin.html">Admin</a>
+    </nav>
+  </div>
+  <div class="ticker"><div class="ticker-track"><span>The weather man…</span></div></div>
+</header>
+
+<section class="tight" style="padding-top:48px;">
+  <div class="container">
+    <p class="eyebrow">Club feedback</p>
+    <h1 style="font-size:clamp(2rem,4vw,3rem);">Suggestions</h1>
+    <p style="max-width:60ch;">Send advice, ideas, or feedback to the admin or captain. Your suggestion will be shared anonymously.</p>
+  </div>
+</section>
+
+<section class="tight">
+  <div class="container">
+    <div class="card" style="max-width:760px;">
+      <div id="suggestions-alert"></div>
+      <form id="suggestions-form" class="form-grid">
+        <div class="field full">
+          <label for="suggestion-message">Your suggestion</label>
+          <textarea id="suggestion-message" name="message" rows="6" required placeholder="Share your idea, advice, or concern..."></textarea>
+        </div>
+        <div class="field full">
+          <button type="submit" class="btn solid">Send suggestion</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <div class="foot-brand"><div class="crest"></div> NJUIT INT FC</div>
+    <small>&copy; <span class="this-year"></span> NJUIT International Football Club &middot; Newark, NJ</small>
+  </div>
+</footer>
+
+<script src="common.js"></script>
+<script>
+const form = document.getElementById('suggestions-form');
+const alertBox = document.getElementById('suggestions-alert');
+
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const submitBtn = form.querySelector('button[type="submit"]');
+  submitBtn.disabled = true;
+  try {
+    const payload = {
+      message: form.elements.message.value.trim()
+    };
+    const res = await fetch('/api/suggestions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const text = await res.text();
+    let data = {};
+    try {
+      data = text ? JSON.parse(text) : {};
+    } catch (err) {
+      data = {};
+    }
+    if (!res.ok) throw new Error(data.error || 'Could not send suggestion.');
+    alertBox.innerHTML = '<div class="alert success">Suggestion sent successfully.</div>';
+    form.reset();
+  } catch (err) {
+    alertBox.innerHTML = `<div class="alert">${err.message}</div>`;
+  } finally {
+    submitBtn.disabled = false;
+  }
+});
+</script>
+</body>
+</html>

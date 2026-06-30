@@ -1,0 +1,66 @@
+{
+  "formation": "4-3-3",
+  "fixtureId": "f5",
+  "startingXI": [
+    {
+      "playerId": "p3",
+      "x": 50,
+      "y": 92
+    },
+    {
+      "playerId": "p10",
+      "x": 18,
+      "y": 74
+    },
+    {
+      "playerId": "p4",
+      "x": 38,
+      "y": 78
+    },
+    {
+      "playerId": "p6",
+      "x": 62,
+      "y": 78
+    },
+    {
+      "playerId": "p8",
+      "x": 82,
+      "y": 74
+    },
+    {
+      "playerId": "p2",
+      "x": 25,
+      "y": 52
+    },
+    {
+      "playerId": "p9",
+      "x": 50,
+      "y": 48
+    },
+    {
+      "playerId": "p7",
+      "x": 75,
+      "y": 52
+    },
+    {
+      "playerId": "p5",
+      "x": 22,
+      "y": 22
+    },
+    {
+      "playerId": "p1",
+      "x": 50,
+      "y": 14
+    },
+    {
+      "playerId": "p11",
+      "x": 78,
+      "y": 22
+    }
+  ],
+  "substitutes": [
+    "p12"
+  ],
+  "captain": "p9",
+  "updatedAt": "2026-06-30T18:28:55.053Z"
+}

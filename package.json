@@ -1,0 +1,14 @@
+{
+  "name": "njuit-int-fc",
+  "version": "1.0.0",
+  "description": "NJUIT INT FC club website - Node/Express backend with JSON storage",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "express-session": "^1.18.0",
+    "bcryptjs": "^2.4.3"
+  }
+}

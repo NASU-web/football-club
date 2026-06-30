@@ -1,0 +1,409 @@
+const express = require('express');
+const session = require('express-session');
+const bcrypt = require('bcryptjs');
+const fs = require('fs');
+const path = require('path');
+const crypto = require('crypto');
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+const DATA_DIR = fs.existsSync(path.join(__dirname, 'data')) ? path.join(__dirname, 'data') : __dirname;
+
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(session({
+  secret: 'njuit-int-fc-clubhouse-secret',
+  resave: false,
+  saveUninitialized: false,
+  cookie: { maxAge: 1000 * 60 * 60 * 4 } // 4 hours
+}));
+app.use(express.static(path.join(__dirname)));
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+app.get('/training', (req, res) => {
+  res.sendFile(path.join(__dirname, 'training.html'));
+});
+// ---------- tiny JSON "database" helpers ----------
+function readData(file) {
+  return JSON.parse(fs.readFileSync(path.join(DATA_DIR, file), 'utf-8'));
+}
+function writeData(file, data) {
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+  fs.writeFileSync(path.join(DATA_DIR, file), JSON.stringify(data, null, 2));
+}
+function requireAdmin(req, res, next) {
+  if (req.session && req.session.isAdmin) return next();
+  return res.status(401).json({ error: 'Admin login required.' });
+}
+
+// ---------- AUTH ----------
+app.post('/api/auth/login', (req, res) => {
+  const { username, password } = req.body || {};
+  const admins = readData('admin.json');
+  const admin = admins.find(a => a.username === username);
+  if (!admin || !bcrypt.compareSync(password || '', admin.passwordHash)) {
+    return res.status(401).json({ error: 'Invalid username or password.' });
+  }
+  req.session.isAdmin = true;
+  req.session.username = admin.username;
+  res.json({ ok: true, username: admin.username });
+});
+
+app.post('/api/auth/logout', (req, res) => {
+  req.session.destroy(() => res.json({ ok: true }));
+});
+
+app.get('/api/auth/me', (req, res) => {
+  res.json({ isAdmin: !!(req.session && req.session.isAdmin), username: req.session?.username || null });
+});
+
+app.post('/api/auth/change-credentials', requireAdmin, (req, res) => {
+  const { currentPassword, newUsername, newPassword } = req.body || {};
+  const admins = readData('admin.json');
+  const admin = admins.find(a => a.username === req.session.username);
+
+  if (!admin || !bcrypt.compareSync(currentPassword || '', admin.passwordHash)) {
+    return res.status(401).json({ error: 'Current password is incorrect.' });
+  }
+
+  const username = typeof newUsername === 'string' ? newUsername.trim() : '';
+  const password = typeof newPassword === 'string' ? newPassword : '';
+
+  if (!username && !password) {
+    return res.status(400).json({ error: 'Provide a new username or new password.' });
+  }
+
+  if (username && admins.some(a => a.username === username && a.username !== admin.username)) {
+    return res.status(409).json({ error: 'That username is already taken.' });
+  }
+
+  if (username) admin.username = username;
+  if (password) admin.passwordHash = bcrypt.hashSync(password, 10);
+
+  writeData('admin.json', admins);
+  req.session.username = admin.username;
+  res.json({ ok: true, username: admin.username });
+});
+
+// ---------- PLAYERS ----------
+app.get('/api/players', (req, res) => {
+  const players = readData('players.json');
+  if (req.query.all === '1' && req.session && req.session.isAdmin) {
+    return res.json(players);
+  }
+  res.json(players.filter(p => p.status === 'approved'));
+});
+
+app.post('/api/players/register', (req, res) => {
+  const { name, number, position, nationality, year, photo, photoPosition, photoZoom } = req.body || {};
+  if (!name || !position || !nationality) {
+    return res.status(400).json({ error: 'Name, position, and nationality are required.' });
+  }
+  const players = readData('players.json');
+  const newPlayer = {
+    id: 'p_' + crypto.randomBytes(4).toString('hex'),
+    name: String(name).trim(),
+    number: number ? Number(number) : null,
+    position,
+    nationality,
+    year: year || 'Freshman',
+    photo: photo ? String(photo).trim() : '',
+    photoPosition: photoPosition ? String(photoPosition).trim() : '50% 50%',
+    photoZoom: Number(photoZoom || 1),
+    status: 'pending',
+    stats: { appearances: 0, goals: 0, assists: 0, yellowCards: 0, redCards: 0 },
+    registeredAt: new Date().toISOString()
+  };
+  players.push(newPlayer);
+  writeData('players.json', players);
+  res.status(201).json({ ok: true, player: newPlayer });
+});
+
+app.post('/api/players/photo', (req, res) => {
+  const { name, photo, photoPosition, photoZoom } = req.body || {};
+  if (!name || !photo) {
+    return res.status(400).json({ error: 'Your name and a photo are required.' });
+  }
+  const players = readData('players.json');
+  const idx = players.findIndex(p => String(p.name).trim().toLowerCase() === String(name).trim().toLowerCase());
+  if (idx === -1) {
+    return res.status(404).json({ error: 'No matching player was found. Try the exact name used during registration.' });
+  }
+  players[idx].photo = String(photo).trim();
+  players[idx].photoPosition = photoPosition ? String(photoPosition).trim() : (players[idx].photoPosition || '50% 50%');
+  players[idx].photoZoom = Number(photoZoom || players[idx].photoZoom || 1);
+  writeData('players.json', players);
+  res.json({ ok: true, player: players[idx] });
+});
+
+app.put('/api/players/:id', requireAdmin, (req, res) => {
+  const players = readData('players.json');
+  const idx = players.findIndex(p => p.id === req.params.id);
+  if (idx === -1) return res.status(404).json({ error: 'Player not found.' });
+  players[idx] = { ...players[idx], ...req.body, id: players[idx].id };
+  writeData('players.json', players);
+  res.json({ ok: true, player: players[idx] });
+});
+
+app.delete('/api/players/:id', requireAdmin, (req, res) => {
+  let players = readData('players.json');
+  const before = players.length;
+  players = players.filter(p => p.id !== req.params.id);
+  if (players.length === before) return res.status(404).json({ error: 'Player not found.' });
+  writeData('players.json', players);
+  res.json({ ok: true });
+});
+
+// ---------- SUGGESTIONS ----------
+app.get('/api/suggestions', requireAdmin, (req, res) => {
+  res.json(readData('suggestions.json'));
+});
+
+app.post('/api/suggestions', (req, res) => {
+  const { message } = req.body || {};
+  if (!message) {
+    return res.status(400).json({ error: 'A suggestion message is required.' });
+  }
+  const suggestions = readData('suggestions.json');
+  const newSuggestion = {
+    id: 's_' + crypto.randomBytes(4).toString('hex'),
+    message: String(message).trim(),
+    createdAt: new Date().toISOString()
+  };
+  suggestions.push(newSuggestion);
+  writeData('suggestions.json', suggestions);
+  res.status(201).json({ ok: true, suggestion: newSuggestion });
+});
+
+// ---------- STATS ----------
+app.get('/api/stats', (req, res) => {
+  const players = readData('players.json').filter(p => p.status === 'approved');
+  const fixtures = readData('fixtures.json');
+  const recordOverrides = readData('club-records.json');
+
+  const played = fixtures.filter(f => f.status === 'played');
+  const wins = played.filter(f => f.result.for > f.result.against).length;
+  const draws = played.filter(f => f.result.for === f.result.against).length;
+  const losses = played.filter(f => f.result.for < f.result.against).length;
+  const goalsFor = played.reduce((s, f) => s + f.result.for, 0);
+  const goalsAgainst = played.reduce((s, f) => s + f.result.against, 0);
+
+  const topScorers = [...players]
+    .sort((a, b) => (b.stats.goals || 0) - (a.stats.goals || 0))
+    .slice(0, 5)
+    .map(p => ({ id: p.id, name: p.name, number: p.number, goals: p.stats.goals || 0 }));
+
+  const topAssists = [...players]
+    .sort((a, b) => (b.stats.assists || 0) - (a.stats.assists || 0))
+    .slice(0, 5)
+    .map(p => ({ id: p.id, name: p.name, number: p.number, assists: p.stats.assists || 0 }));
+
+  const club = {
+    played: recordOverrides.played ?? played.length,
+    wins: recordOverrides.wins ?? wins,
+    draws: recordOverrides.draws ?? draws,
+    losses: recordOverrides.losses ?? losses,
+    goalsFor: recordOverrides.goalsFor ?? goalsFor,
+    goalsAgainst: recordOverrides.goalsAgainst ?? goalsAgainst
+  };
+
+  res.json({
+    club,
+    topScorers,
+    topAssists,
+    squadSize: players.length,
+    nationalities: [...new Set(players.map(p => p.nationality))].length
+  });
+});
+
+app.put('/api/club-records', requireAdmin, (req, res) => {
+  const overrides = req.body || {};
+  const current = readData('club-records.json');
+  const updated = { ...current, ...overrides };
+  writeData('club-records.json', updated);
+  res.json({ ok: true, clubRecords: updated });
+});
+
+app.get('/api/club-records', (req, res) => {
+  res.json(readData('club-records.json'));
+});
+
+// ---------- TRAINING ----------
+app.get('/api/training', (req, res) => {
+  res.json(readData('training.json'));
+});
+
+app.put('/api/training', requireAdmin, (req, res) => {
+  if (!Array.isArray(req.body)) return res.status(400).json({ error: 'Expected an array of training sessions.' });
+  writeData('training.json', req.body);
+  res.json({ ok: true, training: req.body });
+});
+
+// ---------- FIXTURES ----------
+app.get('/api/fixtures', (req, res) => {
+  res.json(readData('fixtures.json'));
+});
+
+app.get('/api/home-next', (req, res) => {
+  const current = readData('home-next.json');
+  const data = {
+    mode: current.mode || 'fixture',
+    fixtureId: current.fixtureId || '',
+    message: current.message || '',
+    announcement: current.announcement || '',
+    showAnnouncement: typeof current.showAnnouncement === 'boolean' ? current.showAnnouncement : Boolean(current.announcement)
+  };
+  res.json(data);
+});
+
+app.put('/api/home-next', requireAdmin, (req, res) => {
+  const current = readData('home-next.json');
+  const updated = { ...current, ...req.body };
+  writeData('home-next.json', updated);
+  res.json({ ok: true, homeNext: updated });
+});
+
+app.get('/api/announcement', (req, res) => {
+  const current = readData('home-next.json');
+  res.json({
+    message: current.announcement || '',
+    show: !!current.showAnnouncement && !!current.announcement
+  });
+});
+
+app.put('/api/announcement', requireAdmin, (req, res) => {
+  const current = readData('home-next.json');
+  const updated = {
+    ...current,
+    announcement: req.body?.message || '',
+    showAnnouncement: !!req.body?.show
+  };
+  writeData('home-next.json', updated);
+  res.json({ ok: true, announcement: { message: updated.announcement, show: updated.showAnnouncement } });
+});
+
+app.post('/api/fixtures', requireAdmin, (req, res) => {
+  const fixtures = readData('fixtures.json');
+  const f = {
+    id: 'f_' + crypto.randomBytes(4).toString('hex'),
+    status: 'scheduled',
+    result: null,
+    ...req.body
+  };
+  fixtures.push(f);
+  writeData('fixtures.json', fixtures);
+  res.status(201).json({ ok: true, fixture: f });
+});
+
+app.put('/api/fixtures/:id', requireAdmin, (req, res) => {
+  const fixtures = readData('fixtures.json');
+  const idx = fixtures.findIndex(f => f.id === req.params.id);
+  if (idx === -1) return res.status(404).json({ error: 'Fixture not found.' });
+  fixtures[idx] = { ...fixtures[idx], ...req.body, id: fixtures[idx].id };
+  writeData('fixtures.json', fixtures);
+  res.json({ ok: true, fixture: fixtures[idx] });
+});
+
+app.delete('/api/fixtures/:id', requireAdmin, (req, res) => {
+  let fixtures = readData('fixtures.json');
+  const before = fixtures.length;
+  fixtures = fixtures.filter(f => f.id !== req.params.id);
+  if (fixtures.length === before) return res.status(404).json({ error: 'Fixture not found.' });
+  writeData('fixtures.json', fixtures);
+  res.json({ ok: true });
+});
+
+// ---------- LINEUP ----------
+app.get('/api/lineup', (req, res) => {
+  res.json(readData('lineup.json'));
+});
+
+app.put('/api/lineup', requireAdmin, (req, res) => {
+  const current = readData('lineup.json');
+  const updated = { ...current, ...req.body, updatedAt: new Date().toISOString() };
+  writeData('lineup.json', updated);
+  res.json({ ok: true, lineup: updated });
+});
+
+// ---------- HISTORY ----------
+app.get('/api/history', (req, res) => {
+  res.json(readData('history.json'));
+});
+
+app.put('/api/history', requireAdmin, (req, res) => {
+  if (!Array.isArray(req.body)) return res.status(400).json({ error: 'Expected an array of milestones.' });
+  writeData('history.json', req.body);
+  res.json({ ok: true });
+});
+
+// ---------- WEATHER (Open-Meteo, no key required) ----------
+async function fetchWeatherSnapshot({ lat, lon, targetTime }) {
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
+    `&hourly=temperature_2m,precipitation_probability,wind_speed_10m,weather_code` +
+    `&temperature_unit=fahrenheit&wind_speed_unit=mph&timezone=auto` +
+    `&forecast_days=16`;
+
+  const response = await fetch(url);
+  if (!response.ok) throw new Error('Weather provider error: ' + response.status);
+  const weather = await response.json();
+
+  const targetMs = targetTime ? new Date(targetTime).getTime() : Date.now();
+  let bestIdx = 0, bestDiff = Infinity;
+  (weather.hourly.time || []).forEach((t, i) => {
+    const diff = Math.abs(new Date(t).getTime() - targetMs);
+    if (diff < bestDiff) { bestDiff = diff; bestIdx = i; }
+  });
+
+  const precipitationProbability = weather.hourly.precipitation_probability?.[bestIdx] ?? null;
+  const weatherQuality = precipitationProbability === null ? 'unknown' : (precipitationProbability < 40 ? 'good' : 'bad');
+  const inRange = bestDiff < 1000 * 60 * 60 * 24 * 16;
+
+  return {
+    available: inRange,
+    time: weather.hourly.time?.[bestIdx] || null,
+    temperatureF: weather.hourly.temperature_2m?.[bestIdx] ?? null,
+    precipitationProbability,
+    windMph: weather.hourly.wind_speed_10m?.[bestIdx] ?? null,
+    weatherCode: weather.hourly.weather_code?.[bestIdx] ?? null,
+    weatherQuality
+  };
+}
+
+app.get('/api/weather/search', async (req, res) => {
+  try {
+    const location = String(req.query.location || 'Nanjing').trim();
+    if (!location) return res.status(400).json({ error: 'Provide a location.' });
+
+    const geocodeUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(location)}&count=1&language=en&format=json`;
+    const geoResponse = await fetch(geocodeUrl);
+    if (!geoResponse.ok) throw new Error('Geocoding provider error: ' + geoResponse.status);
+    const geodata = await geoResponse.json();
+    const place = geodata.results?.[0];
+    if (!place) return res.status(404).json({ error: 'Location not found.' });
+
+    const snapshot = await fetchWeatherSnapshot({ lat: place.latitude, lon: place.longitude, targetTime: req.query.time || new Date().toISOString() });
+    res.json({ location: place.name, country: place.country, ...snapshot });
+  } catch (err) {
+    res.status(502).json({ error: 'Could not reach the weather service.', detail: err.message });
+  }
+});
+
+app.get('/api/weather/:fixtureId', async (req, res) => {
+  try {
+    const fixtures = readData('fixtures.json');
+    const fixture = fixtures.find(f => f.id === req.params.fixtureId);
+    if (!fixture) return res.status(404).json({ error: 'Fixture not found.' });
+    if (!fixture.lat || !fixture.lon) return res.status(400).json({ error: 'Fixture has no location set.' });
+
+    const snapshot = await fetchWeatherSnapshot({ lat: fixture.lat, lon: fixture.lon, targetTime: fixture.date });
+    res.json({ fixtureId: fixture.id, ...snapshot });
+  } catch (err) {
+    res.status(502).json({ error: 'Could not reach the weather service.', detail: err.message });
+  }
+});
+
+app.listen(PORT, () => {
+  console.log(`NJUIT INT FC site running at http://localhost:${PORT}`);
+});

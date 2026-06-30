@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lineup — NJUIT INT FC</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="masthead">
+  <div class="masthead-top">
+    <a href="index.html" class="brand">
+      <div class="crest"></div>
+      <div class="brand-name">NJUIT INT FC<small>NANJING &middot; EST. 2024</small></div>
+    </a>
+    <nav class="primary-nav">
+      <a href="index.html">Home</a>
+      <a href="players.html">Players</a>
+      <a href="stats.html">Stats</a>
+      <a href="fixtures.html">Fixtures</a>
+      <a href="lineup.html">Lineup</a>
+      <a href="history.html">History</a>
+      <a href="training.html">Training</a>
+      <a href="suggestions.html">Suggestions</a>
+      <a href="admin.html">Admin</a>
+    </nav>
+  </div>
+  <div class="ticker"><div class="ticker-track"><span>The weather man&hellip;</span></div></div>
+</header>
+
+<section class="tight" style="padding-top:48px;">
+  <div class="container">
+    <p class="eyebrow">Starting XI</p>
+    <h1 style="font-size:clamp(2rem,4vw,3rem);">Lineup</h1>
+    <p id="lineup-meta" style="max-width:60ch;">Loading lineup&hellip;</p>
+  </div>
+</section>
+
+<section class="tight">
+  <div class="container">
+    <div style="display:grid; grid-template-columns:1fr 340px; gap:36px; align-items:start;">
+
+      <div>
+        <div class="section-head"><h2 id="formation-label">Formation</h2></div>
+        <div class="pitch-wrap">
+          <div class="pitch" id="pitch">
+            <div class="pitch-halfway"></div>
+            <div class="pitch-circle"></div>
+          </div>
+        </div>
+        <p style="font-family:var(--font-mono); font-size:0.68rem; color:var(--ink-soft); margin-top:10px; text-align:center;">
+          <span style="display:inline-block; width:14px; height:14px; border-radius:50%; background:var(--crimson); vertical-align:middle; margin-right:5px;"></span>Captain &nbsp;
+          <span style="display:inline-block; width:14px; height:14px; border-radius:50%; background:var(--gold); vertical-align:middle; margin-right:5px;"></span>Outfield &nbsp;
+        </p>
+      </div>
+
+      <div>
+        <div class="section-head"><h2>Squad list</h2></div>
+        <div id="squad-list"></div>
+
+        <div style="margin-top:32px;">
+          <div class="section-head"><h2>Substitutes</h2></div>
+          <div id="subs-list"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <div class="foot-brand"><div class="crest"></div> NJUIT INT FC</div>
+    <small>&copy; <span class="this-year"></span> NJUIT International Football Club &middot; Newark, NJ</small>
+  </div>
+</footer>
+
+<script src="common.js"></script>
+<script>
+const POS = { Goalkeeper: 'GK', Defender: 'DF', Midfielder: 'MF', Forward: 'FW' };
+
+async function loadLineup() {
+  try {
+    const [lineup, players, fixtures] = await Promise.all([
+      fetch('/api/lineup').then(r => r.json()),
+      fetch('/api/players').then(r => r.json()),
+      fetch('/api/fixtures').then(r => r.json())
+    ]);
+
+    const byId = Object.fromEntries(players.map(p => [p.id, p]));
+    const fixture = fixtures.find(f => f.id === lineup.fixtureId);
+
+    // Meta line
+    if (fixture) {
+      const d = new Date(fixture.date);
+      const dateStr = d.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+      document.getElementById('lineup-meta').innerHTML =
+        `Selected for <strong>${fixture.opponent}</strong> &mdash; ${dateStr} &middot; ${fixture.location}`;
+    } else {
+      document.getElementById('lineup-meta').textContent = `Formation: ${lineup.formation}`;
+    }
+
+    document.getElementById('formation-label').textContent = `${lineup.formation} formation`;
+
+    // Render dots on pitch
+    const pitch = document.getElementById('pitch');
+    lineup.startingXI.forEach(slot => {
+      const p = byId[slot.playerId];
+      if (!p) return;
+      const dot = document.createElement('div');
+      dot.className = 'dot' + (slot.playerId === lineup.captain ? ' captain' : '');
+      dot.style.left = slot.x + '%';
+      dot.style.top = slot.y + '%';
+      dot.innerHTML = `
+        <div class="shirt">${p.number ?? '?'}</div>
+        <div class="label">${p.name.split(' ').pop()}</div>`;
+      pitch.appendChild(dot);
+    });
+
+    // Squad list (starting XI)
+    const startingIds = lineup.startingXI.map(s => s.playerId);
+    document.getElementById('squad-list').innerHTML = startingIds.map((id, i) => {
+      const p = byId[id];
+      if (!p) return '';
+      const isCap = id === lineup.captain;
+      return `
+        <div class="admin-row">
+          <div style="display:flex; align-items:center; gap:14px;">
+            <span style="font-family:var(--font-mono); font-size:1.1rem; font-weight:700; color:var(--navy); width:28px; text-align:right;">${p.number ?? '—'}</span>
+            <div>
+              <strong>${p.name}</strong>${isCap ? ' <span class="badge" style="color:var(--crimson); border-color:var(--crimson); margin-left:6px;">C</span>' : ''}
+              <div style="font-family:var(--font-mono); font-size:0.7rem; color:var(--ink-soft);">${POS[p.position] || p.position} &middot; ${p.nationality}</div>
+            </div>
+          </div>
+        </div>`;
+    }).join('');
+
+    // Substitutes
+    if (lineup.substitutes && lineup.substitutes.length) {
+      document.getElementById('subs-list').innerHTML = lineup.substitutes.map(id => {
+        const p = byId[id];
+        if (!p) return '';
+        return `
+          <div class="admin-row">
+            <div style="display:flex; align-items:center; gap:14px;">
+              <span style="font-family:var(--font-mono); font-size:1.1rem; font-weight:700; color:var(--ink-soft); width:28px; text-align:right;">${p.number ?? '—'}</span>
+              <div>
+                <strong>${p.name}</strong>
+                <div style="font-family:var(--font-mono); font-size:0.7rem; color:var(--ink-soft);">${POS[p.position] || p.position} &middot; ${p.nationality}</div>
+              </div>
+            </div>
+          </div>`;
+      }).join('');
+    } else {
+      document.getElementById('subs-list').innerHTML = '<div class="empty-state">No substitutes named.</div>';
+    }
+
+  } catch (e) {
+    document.getElementById('pitch').innerHTML += '<p style="color:rgba(255,255,255,0.7); text-align:center; padding:40px;">Could not load lineup.</p>';
+  }
+}
+
+document.addEventListener('DOMContentLoaded', loadLineup);
+</script>
+
+<style>
+@media (max-width: 880px) {
+  .container > div[style*="grid-template-columns:1fr 340px"] {
+    display: block !important;
+  }
+  .container > div[style*="grid-template-columns:1fr 340px"] > div:last-child {
+    margin-top: 32px;
+  }
+}
+</style>
+</body>
+</html>
