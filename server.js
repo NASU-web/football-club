@@ -143,18 +143,42 @@ app.post('/api/players/register', (req, res) => {
 });
 
 app.post('/api/players/photo', (req, res) => {
-  const { name, photo, photoPosition, photoZoom } = req.body || {};
-  if (!name || !photo) {
-    return res.status(400).json({ error: 'Your name and a photo are required.' });
+  const { name, photo, photoPosition, photoZoom, newName, number } = req.body || {};
+  if (!name) {
+    return res.status(400).json({ error: 'Your name is required.' });
+  }
+  if (!photo && !newName && !number) {
+    return res.status(400).json({ error: 'Provide a photo, a corrected name, or a corrected number.' });
   }
   const players = readData('players.json');
   const idx = players.findIndex(p => String(p.name).trim().toLowerCase() === String(name).trim().toLowerCase());
   if (idx === -1) {
     return res.status(404).json({ error: 'No matching player was found. Try the exact name used during registration.' });
   }
-  players[idx].photo = String(photo).trim();
-  players[idx].photoPosition = photoPosition ? String(photoPosition).trim() : (players[idx].photoPosition || '50% 50%');
-  players[idx].photoZoom = Number(photoZoom || players[idx].photoZoom || 1);
+
+  if (newName && String(newName).trim()) {
+    const trimmedNewName = String(newName).trim();
+    const clash = players.some((p, i) => i !== idx && String(p.name).trim().toLowerCase() === trimmedNewName.toLowerCase());
+    if (clash) {
+      return res.status(409).json({ error: 'Another player already has that name. Ask a club admin for help.' });
+    }
+    players[idx].name = trimmedNewName;
+  }
+
+  if (number !== undefined && number !== null && String(number).trim() !== '') {
+    const parsedNumber = Number(number);
+    if (!Number.isFinite(parsedNumber) || parsedNumber < 1 || parsedNumber > 99) {
+      return res.status(400).json({ error: 'Number must be between 1 and 99.' });
+    }
+    players[idx].number = parsedNumber;
+  }
+
+  if (photo) {
+    players[idx].photo = String(photo).trim();
+    players[idx].photoPosition = photoPosition ? String(photoPosition).trim() : (players[idx].photoPosition || '50% 50%');
+    players[idx].photoZoom = Number(photoZoom || players[idx].photoZoom || 1);
+  }
+
   writeData('players.json', players);
   res.json({ ok: true, player: players[idx] });
 });
