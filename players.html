@@ -59,11 +59,19 @@
       <div id="photo-update-alert"></div>
       <form id="photo-update-form" class="form-grid">
         <div class="field">
-          <label for="photo-player-name">Your name</label>
+          <label for="photo-player-name">Your name (as currently on the roster)</label>
           <input id="photo-player-name" name="playerName" type="text" required>
         </div>
+        <div class="field">
+          <label for="photo-new-name">Correct name <span class="form-note" style="display:inline;">(only if it's wrong)</span></label>
+          <input id="photo-new-name" name="newName" type="text" placeholder="Leave blank to keep as-is">
+        </div>
+        <div class="field">
+          <label for="photo-number">Number <span class="form-note" style="display:inline;">(only if it's wrong)</span></label>
+          <input id="photo-number" name="number" type="number" min="1" max="99" placeholder="Leave blank to keep as-is">
+        </div>
         <div class="field full">
-          <label for="photo-file">Choose a photo</label>
+          <label for="photo-file">Choose a photo <span class="form-note" style="display:inline;">(optional if you're only fixing your name or number)</span></label>
           <input id="photo-file" name="photo" type="file" accept="image/*">
           <p class="form-note">You can choose a photo from your phone or laptop album.</p>
           <div id="photo-position-controls" class="photo-position-controls" style="display:none;">
