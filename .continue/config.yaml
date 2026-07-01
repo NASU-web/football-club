@@ -1,0 +1,8 @@
+name: Local Ollama
+schema: v1
+
+models:
+  - name: Gemma 4
+    provider: ollama
+    model: gemma4
+    apiBase: http://localhost:11434

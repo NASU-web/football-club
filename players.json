@@ -195,13 +195,14 @@
     "year": "Senior",
     "status": "pending",
     "stats": {
-      "appearances": 0,
+      "appearances": 5,
       "goals": 0,
       "assists": 0,
       "yellowCards": 0,
       "redCards": 0
     },
-    "registeredAt": "2026-06-30T18:11:21.648Z"
+    "registeredAt": "2026-06-30T18:11:21.648Z",
+    "photo": ""
   },
   {
     "id": "p_72865e48",

@@ -15,7 +15,9 @@ const CREST_SVG = `
 </svg>`;
 
 function paintCrests() {
-  document.querySelectorAll('.crest').forEach(el => { el.innerHTML = CREST_SVG; });
+  document.querySelectorAll('.crest').forEach(el => {
+    el.innerHTML = CREST_SVG;
+  });
 }
 
 function highlightNav() {
@@ -28,6 +30,47 @@ function highlightNav() {
 
 function setYear() {
   document.querySelectorAll('.this-year').forEach(el => { el.textContent = new Date().getFullYear(); });
+}
+
+async function loadSiteConfig() {
+  try {
+    const config = await fetch('/api/site-config?t=' + Date.now(), { cache: 'no-store' }).then(r => r.ok ? r.json() : null);
+    if (!config) {
+      paintCrests();
+      return;
+    }
+    const brandName = config.brandName?.trim() || 'NJUIT INT FC';
+    const brandSubtext = config.brandSubtext?.trim() || 'NANJING · EST. 2024';
+    document.querySelectorAll('.brand-name').forEach(el => {
+      el.innerHTML = `${brandName}${brandSubtext ? `<small>${brandSubtext}</small>` : ''}`;
+    });
+    if (config.logoImage?.trim()) {
+      const src = config.logoImage.trim();
+      const logoPosition = config.logoPosition?.trim() || '50% 50%';
+      const logoZoom = Number(config.logoZoom || 1);
+      document.querySelectorAll('.crest').forEach(el => {
+        const existingImg = el.querySelector('img');
+        if (existingImg) existingImg.remove();
+        const img = document.createElement('img');
+        img.src = src;
+        img.alt = `${brandName} crest`;
+        img.style.objectPosition = logoPosition;
+        img.style.transformOrigin = logoPosition;
+        img.style.transform = `scale(${logoZoom})`;
+        img.onload = () => {
+          img.classList.add('loaded');
+        };
+        img.onerror = () => {
+          img.remove();
+        };
+        el.appendChild(img);
+      });
+    } else {
+      paintCrests();
+    }
+  } catch (e) {
+    paintCrests();
+  }
 }
 
 function getWeatherSummary(weather) {
@@ -67,8 +110,8 @@ async function fillTicker() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  paintCrests();
   highlightNav();
   setYear();
+  loadSiteConfig();
   fillTicker();
 });

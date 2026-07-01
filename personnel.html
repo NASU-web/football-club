@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Personnel — NJUIT INT FC</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="masthead">
+  <div class="masthead-top">
+    <a href="index.html" class="brand">
+      <div class="crest"></div>
+      <div class="brand-name">NJUIT INT FC<small>NANJING · EST. 2024</small></div>
+    </a>
+    <nav class="primary-nav">
+      <a href="index.html">Home</a>
+      <a href="players.html">Players</a>
+      <a href="stats.html">Stats</a>
+      <a href="fixtures.html">Fixtures</a>
+      <a href="lineup.html">Lineup</a>
+      <a href="personnel.html">Personnel</a>
+      <a href="history.html">History</a>
+      <a href="training.html">Training</a>
+      <a href="suggestions.html">Suggestions</a>
+      <a href="attendance.html">Attendance</a>
+      <a href="admin.html">Admin</a>
+    </nav>
+  </div>
+  <div class="ticker"><div class="ticker-track"><span>The weather man…</span></div></div>
+</header>
+
+<section class="tight" style="padding-top:48px;">
+  <div class="container">
+    <p class="eyebrow">Club personnel</p>
+    <h1>Meet the people behind the club</h1>
+    <p class="lede">Browse the club creator, the captain, the coaching staff and the coordinator. Photos are managed by the admin and selected from your device album.</p>
+  </div>
+</section>
+
+<section class="tight">
+  <div class="container">
+    <div id="personnel-loading" style="margin-bottom:24px; color:var(--ink-soft);">Loading personnel…</div>
+    <div id="personnel-grid" class="personnel-grid"></div>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <div class="foot-brand"><div class="crest"></div> NJUIT INT FC</div>
+    <small>&copy; <span class="this-year"></span> NJUIT International Football Club · Nanjing</small>
+  </div>
+</footer>
+
+<script src="common.js"></script>
+<script>
+async function loadPersonnel() {
+  const loading = document.getElementById('personnel-loading');
+  const grid = document.getElementById('personnel-grid');
+  try {
+    const personnel = await fetch('/api/personnel?t=' + Date.now(), { cache: 'no-store' }).then(r => r.ok ? r.json() : []);
+    loading.style.display = 'none';
+    if (!Array.isArray(personnel) || !personnel.length) {
+      grid.innerHTML = '<div class="empty-state">No personnel information is available yet.</div>';
+      return;
+    }
+    grid.innerHTML = personnel.map(person => `
+      <article class="personnel-card">
+        <div class="personnel-photo-wrap">
+          ${person.photoDataUrl ? `<img src="${person.photoDataUrl}" alt="${person.role} ${person.name}" style="object-position:${person.photoPosition || '50% 50%'}; transform:scale(${person.photoZoom || 1}); transform-origin:${person.photoPosition || '50% 50%'};">` : '<div class="personnel-photo-placeholder">No photo yet</div>'}
+        </div>
+        <div class="personnel-body">
+          <p class="eyebrow" style="margin-bottom:6px;">${person.role}</p>
+          <h2>${person.name}</h2>
+          <p>${person.bio}</p>
+        </div>
+      </article>`).join('');
+  } catch (e) {
+    loading.textContent = 'Could not load personnel.';
+    grid.innerHTML = '';
+  }
+}
+
+document.addEventListener('DOMContentLoaded', loadPersonnel);
+</script>
+</body>
+</html>

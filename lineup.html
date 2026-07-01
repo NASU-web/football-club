@@ -20,9 +20,11 @@
       <a href="stats.html">Stats</a>
       <a href="fixtures.html">Fixtures</a>
       <a href="lineup.html">Lineup</a>
+      <a href="personnel.html">Personnel</a>
       <a href="history.html">History</a>
       <a href="training.html">Training</a>
       <a href="suggestions.html">Suggestions</a>
+      <a href="attendance.html">Attendance</a>
       <a href="admin.html">Admin</a>
     </nav>
   </div>
@@ -42,9 +44,20 @@
     <div style="display:grid; grid-template-columns:1fr 340px; gap:36px; align-items:start;">
 
       <div>
-        <div class="section-head"><h2 id="formation-label">Formation</h2></div>
+        <div class="section-head" style="display:flex; flex-wrap:wrap; gap:12px; align-items:center; justify-content:center;">
+      <h2 id="formation-label">Formation</h2>
+      <div id="lineup-controls" style="display:flex; gap:10px; align-items:center;">
+        <button id="lineup-unlock-btn" class="btn small" type="button">Unlock lineup</button>
+        <input id="lineup-unlock-code" type="password" placeholder="Unlock code" style="display:none; min-width:140px; padding:8px 10px; border:1px solid var(--line); border-radius:8px; background:var(--white); color:var(--navy);">
+        <span id="lineup-lock-status" style="font-family:var(--font-mono); font-size:0.8rem; color:var(--ink-soft);">Locked 🔒</span>
+      </div>
+    </div>
         <div class="pitch-wrap">
           <div class="pitch" id="pitch">
+            <div class="field-side our-side"><span>OUR HALF</span></div>
+            <div class="field-side opposition-side"><span>OPPOSITION HALF</span></div>
+            <div class="goal goal-home"></div>
+            <div class="goal goal-away"></div>
             <div class="pitch-halfway"></div>
             <div class="pitch-circle"></div>
           </div>
@@ -63,6 +76,16 @@
           <div class="section-head"><h2>Substitutes</h2></div>
           <div id="subs-list"></div>
         </div>
+        <div style="margin-top:32px;">
+          <div class="section-head"><h2>Tactics & Instructions</h2></div>
+          <div class="card" id="tactics-panel" style="padding:20px;">
+            <div id="tactics-general" style="margin-bottom:18px;">
+              <h3 style="margin-bottom:8px;">General instruction</h3>
+              <p class="form-note">Loading tactics…</p>
+            </div>
+            <div id="tactics-details" style="display:grid; gap:16px; grid-template-columns:repeat(auto-fit,minmax(180px,1fr));"></div>
+          </div>
+        </div>
       </div>
 
     </div>
@@ -72,13 +95,130 @@
 <footer>
   <div class="container">
     <div class="foot-brand"><div class="crest"></div> NJUIT INT FC</div>
-    <small>&copy; <span class="this-year"></span> NJUIT International Football Club &middot; Newark, NJ</small>
+    <small>&copy; <span class="this-year"></span> NJUIT International Football Club &middot; Nanjing</small>
   </div>
 </footer>
 
 <script src="common.js"></script>
 <script>
 const POS = { Goalkeeper: 'GK', Defender: 'DF', Midfielder: 'MF', Forward: 'FW' };
+let lineupUnlocked = false;
+let CURRENT_LINEUP = null;
+let activeDrag = null;
+
+const LINEUP_UNLOCK_CODE = 'BOMBO';
+
+function setLineupLockState(unlocked) {
+  lineupUnlocked = unlocked;
+  const status = document.getElementById('lineup-lock-status');
+  const btn = document.getElementById('lineup-unlock-btn');
+  const input = document.getElementById('lineup-unlock-code');
+  if (!status || !btn || !input) return;
+  if (unlocked) {
+    status.textContent = 'Unlocked 🔓';
+    status.style.color = 'var(--crimson)';
+    btn.textContent = 'Lock lineup';
+    input.style.display = 'none';
+    input.value = '';
+  } else {
+    status.textContent = 'Locked 🔒';
+    status.style.color = 'var(--ink-soft)';
+    btn.textContent = 'Unlock lineup';
+  }
+}
+
+function initLineupUnlock() {
+  const btn = document.getElementById('lineup-unlock-btn');
+  const input = document.getElementById('lineup-unlock-code');
+  const status = document.getElementById('lineup-lock-status');
+  if (!btn || !input || !status) return;
+
+  btn.addEventListener('click', () => {
+    if (lineupUnlocked) {
+      setLineupLockState(false);
+      return;
+    }
+    if (input.style.display === 'none') {
+      input.style.display = 'inline-flex';
+      input.focus();
+      return;
+    }
+    const code = input.value.trim().toUpperCase();
+    if (code === LINEUP_UNLOCK_CODE) {
+      setLineupLockState(true);
+      status.textContent = 'Unlocked 🔓';
+      status.style.color = 'var(--crimson)';
+    } else {
+      status.textContent = 'Wrong code';
+      status.style.color = 'var(--crimson)';
+      setTimeout(() => {
+        if (!lineupUnlocked) {
+          status.textContent = 'Locked 🔒';
+          status.style.color = 'var(--ink-soft)';
+        }
+      }, 1800);
+    }
+  });
+
+  input.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') {
+      btn.click();
+    }
+  });
+}
+
+function updateDraggedDotPosition(event) {
+  if (!activeDrag) return;
+  const pitch = document.getElementById('pitch');
+  if (!pitch) return;
+  const rect = pitch.getBoundingClientRect();
+  const x = Math.min(100, Math.max(0, ((event.clientX - rect.left) / rect.width) * 100));
+  const y = Math.min(100, Math.max(0, ((event.clientY - rect.top) / rect.height) * 100));
+  activeDrag.dot.style.left = `${x}%`;
+  activeDrag.dot.style.top = `${y}%`;
+
+  if (!CURRENT_LINEUP) return;
+  const slot = CURRENT_LINEUP.startingXI?.find(item => item.playerId === activeDrag.dot.dataset.playerId);
+  if (slot) {
+    slot.x = x;
+    slot.y = y;
+  }
+}
+
+function startDotDrag(event, dot) {
+  if (!lineupUnlocked) return;
+  event.preventDefault();
+  const pitch = document.getElementById('pitch');
+  if (!pitch) return;
+  dot.setPointerCapture(event.pointerId);
+  dot.classList.add('dragging');
+  activeDrag = { dot, pointerId: event.pointerId };
+  document.body.style.userSelect = 'none';
+  document.body.style.touchAction = 'none';
+  updateDraggedDotPosition(event);
+}
+
+function moveDot(event) {
+  if (!activeDrag) return;
+  event.preventDefault();
+  event.stopPropagation();
+  updateDraggedDotPosition(event);
+}
+
+function endDotDrag(event) {
+  if (!activeDrag) return;
+  event.preventDefault();
+  event.stopPropagation();
+  activeDrag.dot.classList.remove('dragging');
+  try {
+    activeDrag.dot.releasePointerCapture(activeDrag.pointerId);
+  } catch (err) {
+    // ignore if capture already released or unsupported
+  }
+  activeDrag = null;
+  document.body.style.userSelect = '';
+  document.body.style.touchAction = '';
+}
 
 async function loadLineup() {
   try {
@@ -103,18 +243,55 @@ async function loadLineup() {
 
     document.getElementById('formation-label').textContent = `${lineup.formation} formation`;
 
+    CURRENT_LINEUP = lineup;
+    const generalInstruction = lineup.generalInstruction || 'Keep the team compact and aggressive while staying disciplined.';
+    const attacking = lineup.attacking || 'Attack through fast transitions and wide overloads.';
+    const defending = lineup.defending || 'Press together, recover quickly, and block central lanes.';
+    const passing = lineup.passing || 'Play quick, vertical passes with smart switches and support.';
+    const structure = lineup.structure || 'Modern 4-3-3 structure with fullbacks supporting attacks and midfield control.';
+
+    document.getElementById('tactics-general').innerHTML = `
+      <h3 style="margin-bottom:8px;">General instruction</h3>
+      <p style="margin:0;">${generalInstruction}</p>
+    `;
+    document.getElementById('tactics-details').innerHTML = `
+      <div style="background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.08); padding:14px; border-radius:12px;">
+        <h4 style="margin:0 0 8px 0; font-size:0.95rem;">Attacking</h4>
+        <p style="margin:0; color:var(--ink-soft);">${attacking}</p>
+      </div>
+      <div style="background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.08); padding:14px; border-radius:12px;">
+        <h4 style="margin:0 0 8px 0; font-size:0.95rem;">Defending</h4>
+        <p style="margin:0; color:var(--ink-soft);">${defending}</p>
+      </div>
+      <div style="background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.08); padding:14px; border-radius:12px;">
+        <h4 style="margin:0 0 8px 0; font-size:0.95rem;">Passes</h4>
+        <p style="margin:0; color:var(--ink-soft);">${passing}</p>
+      </div>
+      <div style="background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.08); padding:14px; border-radius:12px;">
+        <h4 style="margin:0 0 8px 0; font-size:0.95rem;">Structure</h4>
+        <p style="margin:0; color:var(--ink-soft);">${structure}</p>
+      </div>
+    `;
+
     // Render dots on pitch
     const pitch = document.getElementById('pitch');
-    lineup.startingXI.forEach(slot => {
+    if (pitch) {
+      pitch.querySelectorAll('.dot').forEach(el => el.remove());
+    }
+    lineup.startingXI.forEach((slot, index) => {
       const p = byId[slot.playerId];
-      if (!p) return;
+      const isKeeper = p ? (p.position === 'Goalkeeper' || p.position === 'GK') : slot.y >= 84;
+      const displayName = p ? p.name.split(' ').pop() : (isKeeper ? 'GK' : 'Player');
+      const displayNumber = p?.number ?? '?';
       const dot = document.createElement('div');
-      dot.className = 'dot' + (slot.playerId === lineup.captain ? ' captain' : '');
+      dot.className = 'dot' + (slot.playerId === lineup.captain ? ' captain' : '') + (isKeeper ? ' keeper' : '');
+      dot.dataset.playerId = slot.playerId;
       dot.style.left = slot.x + '%';
       dot.style.top = slot.y + '%';
       dot.innerHTML = `
-        <div class="shirt">${p.number ?? '?'}</div>
-        <div class="label">${p.name.split(' ').pop()}</div>`;
+        <div class="shirt">${displayNumber}</div>
+        <div class="label">${displayName}</div>`;
+      dot.addEventListener('pointerdown', (event) => startDotDrag(event, dot));
       pitch.appendChild(dot);
     });
 
@@ -161,7 +338,13 @@ async function loadLineup() {
   }
 }
 
-document.addEventListener('DOMContentLoaded', loadLineup);
+document.addEventListener('DOMContentLoaded', () => {
+  initLineupUnlock();
+  loadLineup();
+  document.addEventListener('pointermove', moveDot);
+  document.addEventListener('pointerup', endDotDrag);
+  document.addEventListener('pointercancel', endDotDrag);
+});
 </script>
 
 <style>

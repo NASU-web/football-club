@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Attendance — NJUIT INT FC</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="masthead">
+  <div class="masthead-top">
+    <a href="index.html" class="brand">
+      <div class="crest"></div>
+      <div class="brand-name">NJUIT INT FC<small>NANJING &middot; EST. 2024</small></div>
+    </a>
+    <nav class="primary-nav">
+      <a href="index.html">Home</a>
+      <a href="players.html">Players</a>
+      <a href="stats.html">Stats</a>
+      <a href="fixtures.html">Fixtures</a>
+      <a href="lineup.html">Lineup</a>
+      <a href="personnel.html">Personnel</a>
+      <a href="history.html">History</a>
+      <a href="training.html">Training</a>
+      <a href="suggestions.html">Suggestions</a>
+      <a href="attendance.html">Attendance</a>
+      <a href="admin.html">Admin</a>
+    </nav>
+  </div>
+  <div class="ticker"><div class="ticker-track"><span>The weather man…</span></div></div>
+</header>
+
+<section class="tight" style="padding-top:48px;">
+  <div class="container">
+    <p class="eyebrow" id="attendance-eyebrow">Team availability</p>
+    <h1 id="attendance-heading">Play this evening?</h1>
+    <p id="attendance-description" style="max-width:60ch;">Tick if you can join the squad for tonight's session, then see how many people are coming and who is confirmed.</p>
+  </div>
+</section>
+
+<section class="tight">
+  <div class="container">
+    <div class="card" style="max-width:760px; margin-bottom:24px;" id="attendance-card">
+      <div id="attendance-status">Loading availability…</div>
+      <form id="attendance-form" class="form-grid" style="margin-top:20px;">
+        <div class="field full">
+          <label for="attendance-name">Your name</label>
+          <input id="attendance-name" type="text" required placeholder="Enter your name">
+        </div>
+        <div class="field full" style="display:flex; align-items:center; gap:10px;">
+          <input id="attendance-coming" type="checkbox">
+          <label id="attendance-checkbox-label" for="attendance-coming" style="margin:0;">I can play this evening</label>
+        </div>
+        <div class="field full">
+          <button type="submit" class="btn solid">Submit availability</button>
+        </div>
+        <div class="field full" id="attendance-feedback"></div>
+      </form>
+    </div>
+
+    <div class="card" style="max-width:760px;">
+      <h2 style="margin-bottom:16px;">Who's coming</h2>
+      <div id="attendance-answers">Loading attendance list…</div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <div class="foot-brand"><div class="crest"></div> NJUIT INT FC</div>
+    <small>&copy; <span class="this-year"></span> NJUIT International Football Club &middot; Nanjing</small>
+  </div>
+</footer>
+
+<script src="common.js"></script>
+<script src="attendance.js"></script>
+</body>
+</html>

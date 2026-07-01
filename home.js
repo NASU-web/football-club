@@ -32,6 +32,23 @@ async function loadAnnouncement() {
   }
 }
 
+async function loadHomeBranding() {
+  try {
+    const config = await fetch('/api/site-config?t=' + Date.now(), { cache: 'no-store' }).then(r => r.ok ? r.json() : null);
+    if (!config) return;
+    if (config.homeHeadline) {
+      const headline = document.getElementById('home-headline');
+      if (headline) headline.innerHTML = config.homeHeadline.replace(/\r?\n/g, '<br>');
+    }
+    if (config.homeDescription) {
+      const description = document.getElementById('home-description');
+      if (description) description.textContent = config.homeDescription;
+    }
+  } catch (e) {
+    // Keep default hero text if config cannot be loaded
+  }
+}
+
 async function loadNextFixture() {
   const box = document.getElementById('next-fixture');
   try {
@@ -92,8 +109,15 @@ async function loadNextFixture() {
 async function loadFeaturedPlayers() {
   const grid = document.getElementById('home-players');
   try {
-    const players = await fetch('/api/players').then(r => r.json());
-    const featured = [...players].sort((a, b) => (b.stats.goals + b.stats.assists) - (a.stats.goals + a.stats.assists)).slice(0, 3);
+    const [homeNext, players] = await Promise.all([
+      fetch('/api/home-next?t=' + Date.now(), { cache: 'no-store' }).then(r => r.json()),
+      fetch('/api/players').then(r => r.json())
+    ]);
+    const potm = homeNext.potmPlayerId ? players.find(p => p.id === homeNext.potmPlayerId) : null;
+    const featured = potm
+      ? [potm]
+      : [...players].sort((a, b) => (b.stats.goals + b.stats.assists) - (a.stats.goals + a.stats.assists)).slice(0, 1);
+
     grid.innerHTML = featured.map(p => `
       <div class="player-card">
         <div class="player-card-photo ${p.photo ? '' : 'placeholder'}">
@@ -116,6 +140,7 @@ async function loadFeaturedPlayers() {
 
 document.addEventListener('DOMContentLoaded', () => {
   loadHeroStats();
+  loadHomeBranding();
   loadAnnouncement();
   loadNextFixture();
   loadFeaturedPlayers();

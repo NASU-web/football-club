@@ -4,13 +4,14 @@ const bcrypt = require('bcryptjs');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const setupPersonnelRoutes = require('./personnel-server');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 const DATA_DIR = fs.existsSync(path.join(__dirname, 'data')) ? path.join(__dirname, 'data') : __dirname;
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '5mb' }));
+app.use(express.urlencoded({ extended: true, limit: '5mb' }));
 app.use(session({
   secret: 'njuit-int-fc-clubhouse-secret',
   resave: false,
@@ -25,9 +26,29 @@ app.get('/', (req, res) => {
 app.get('/training', (req, res) => {
   res.sendFile(path.join(__dirname, 'training.html'));
 });
+
+app.get('/personnel', (req, res) => {
+  res.sendFile(path.join(__dirname, 'personnel.html'));
+});
+
 // ---------- tiny JSON "database" helpers ----------
 function readData(file) {
   return JSON.parse(fs.readFileSync(path.join(DATA_DIR, file), 'utf-8'));
+}
+function safeReadData(file, fallback) {
+  try {
+    return readData(file);
+  } catch (err) {
+    if (err.code === 'ENOENT') {
+      writeData(file, fallback);
+      return fallback;
+    }
+    if (err instanceof SyntaxError) {
+      writeData(file, fallback);
+      return fallback;
+    }
+    throw err;
+  }
 }
 function writeData(file, data) {
   fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -246,11 +267,67 @@ app.get('/api/fixtures', (req, res) => {
   res.json(readData('fixtures.json'));
 });
 
+// ---------- ATTENDANCE ----------
+app.get('/api/attendance', (req, res) => {
+  const entries = safeReadData('attendance.json', []);
+  res.json(entries);
+});
+
+app.get('/api/attendance-config', (req, res) => {
+  const config = safeReadData('attendance-config.json', {
+    heading: 'Play this evening?',
+    description: "Tick if you can join the squad for tonight's session, then see how many people are coming and who is confirmed.",
+    checkboxLabel: 'I can play this evening',
+    statusTitle: "Tonight's turnout",
+    comingTitle: 'Coming',
+    notComingTitle: 'Not coming'
+  });
+  res.json(config);
+});
+
+app.put('/api/attendance-config', requireAdmin, (req, res) => {
+  const payload = req.body || {};
+  const config = safeReadData('attendance-config.json', {
+    heading: 'Play this evening?',
+    description: "Tick if you can join the squad for tonight's session, then see how many people are coming and who is confirmed.",
+    checkboxLabel: 'I can play this evening',
+    statusTitle: "Tonight's turnout",
+    comingTitle: 'Coming',
+    notComingTitle: 'Not coming'
+  });
+  const updated = { ...config, ...payload };
+  writeData('attendance-config.json', updated);
+  res.json({ ok: true, config: updated });
+});
+
+app.post('/api/attendance', (req, res) => {
+  const { name, coming } = req.body || {};
+  if (!name || typeof coming !== 'boolean') {
+    return res.status(400).json({ error: 'Name and coming status are required.' });
+  }
+  const entries = safeReadData('attendance.json', []);
+  const normalized = String(name).trim();
+  const idx = entries.findIndex(item => item.name.toLowerCase() === normalized.toLowerCase());
+  const updatedEntry = {
+    name: normalized,
+    coming,
+    updatedAt: new Date().toISOString()
+  };
+  if (idx === -1) {
+    entries.push(updatedEntry);
+  } else {
+    entries[idx] = { ...entries[idx], ...updatedEntry };
+  }
+  writeData('attendance.json', entries);
+  res.json({ ok: true, entry: updatedEntry });
+});
+
 app.get('/api/home-next', (req, res) => {
   const current = readData('home-next.json');
   const data = {
     mode: current.mode || 'fixture',
     fixtureId: current.fixtureId || '',
+    potmPlayerId: current.potmPlayerId || '',
     message: current.message || '',
     announcement: current.announcement || '',
     showAnnouncement: typeof current.showAnnouncement === 'boolean' ? current.showAnnouncement : Boolean(current.announcement)
@@ -283,6 +360,34 @@ app.put('/api/announcement', requireAdmin, (req, res) => {
   writeData('home-next.json', updated);
   res.json({ ok: true, announcement: { message: updated.announcement, show: updated.showAnnouncement } });
 });
+
+app.get('/api/site-config', (req, res) => {
+  const config = safeReadData('site-config.json', {
+    logoImage: '',
+    logoPosition: '50% 50%',
+    logoZoom: 1,
+    brandName: 'NJUIT INT FC',
+    brandSubtext: 'NANJING · EST. 2024',
+    homeHeadline: 'WEAR THE CREST.\nEARN THE SHIRT.',
+    homeDescription: "NJUIT INT FC is the international students' football club of NJUIT, fielding a squad drawn from across the globe since 2024. Same badge, every accent."
+  });
+  res.json(config);
+});
+
+app.put('/api/site-config', requireAdmin, (req, res) => {
+  const current = safeReadData('site-config.json', {
+    logoImage: '',
+    brandName: 'NJUIT INT FC',
+    brandSubtext: 'NANJING · EST. 2024',
+    homeHeadline: 'WEAR THE CREST.\nEARN THE SHIRT.',
+    homeDescription: "NJUIT INT FC is the international students' football club of NJUIT, fielding a squad drawn from across the globe since 2024. Same badge, every accent."
+  });
+  const updated = { ...current, ...req.body };
+  writeData('site-config.json', updated);
+  res.json({ ok: true, config: updated });
+});
+
+setupPersonnelRoutes(app, requireAdmin);
 
 app.post('/api/fixtures', requireAdmin, (req, res) => {
   const fixtures = readData('fixtures.json');
@@ -402,6 +507,13 @@ app.get('/api/weather/:fixtureId', async (req, res) => {
   } catch (err) {
     res.status(502).json({ error: 'Could not reach the weather service.', detail: err.message });
   }
+});
+
+app.use((err, req, res, next) => {
+  if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
+    return res.status(400).json({ error: 'Invalid JSON payload.' });
+  }
+  next(err);
 });
 
 app.listen(PORT, () => {

@@ -1,5 +1,5 @@
 {
-  "formation": "4-3-3",
+  "formation": "3-5-2",
   "fixtureId": "f5",
   "startingXI": [
     {
@@ -62,5 +62,10 @@
     "p12"
   ],
   "captain": "p9",
-  "updatedAt": "2026-06-30T18:28:55.053Z"
+  "generalInstruction": "Keep the team compact and aggressive in transition, while staying disciplined at the back.",
+  "attacking": "Attack with fast transitions, overload the wide areas, and link play through the central midfield.",
+  "defending": "Press as a unit, recover quickly, and protect the middle third to force turnovers.",
+  "passing": "Play quick, vertical passes with smart switches and support to break lines.",
+  "structure": "Modern 4-3-3 with fullbacks supporting attacks and a midfield trio controlling possession.",
+  "updatedAt": "2026-07-01T10:48:23.681Z"
 }
