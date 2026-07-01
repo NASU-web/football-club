@@ -74,10 +74,23 @@ function updatePreviewPosition(preview, controls, xInput, yInput, zoomInput) {
   controls.style.display = 'grid';
 }
 
-function readImageAsDataUrl(file) {
+function readImageFileAsDataUrl(file, maxWidth = 640, maxHeight = 640, quality = 0.8) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = () => resolve(reader.result);
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const ratio = Math.min(maxWidth / img.width, maxHeight / img.height, 1);
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.round(img.width * ratio);
+        canvas.height = Math.round(img.height * ratio);
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = () => reject(new Error('Could not load the selected image.'));
+      img.src = reader.result;
+    };
     reader.onerror = () => reject(new Error('Could not read the selected image.'));
     reader.readAsDataURL(file);
   });
@@ -97,7 +110,7 @@ function setupRegisterForm() {
     const file = fileInput.files?.[0];
     if (!file) return;
     try {
-      const dataUrl = await readImageAsDataUrl(file);
+      const dataUrl = await readImageFileAsDataUrl(file);
       preview.src = dataUrl;
       preview.style.display = 'block';
       updatePreviewPosition(preview, controls, xInput, yInput, zoomInput);
@@ -115,7 +128,7 @@ function setupRegisterForm() {
     const submitBtn = form.querySelector('button[type="submit"]');
     submitBtn.disabled = true;
     try {
-      const photo = fileInput?.files?.[0] ? await readImageAsDataUrl(fileInput.files[0]) : null;
+      const photo = fileInput?.files?.[0] ? await readImageFileAsDataUrl(fileInput.files[0]) : null;
       const payload = {
         name: form.elements.name.value.trim(),
         number: form.elements.number.value || null,
@@ -160,7 +173,7 @@ async function updatePlayerPhoto() {
     const file = fileInput.files?.[0];
     if (!file) return;
     try {
-      const dataUrl = await readImageAsDataUrl(file);
+      const dataUrl = await readImageFileAsDataUrl(file);
       preview.src = dataUrl;
       preview.style.display = 'block';
       updatePreviewPosition(preview, controls, xInput, yInput, zoomInput);
@@ -177,19 +190,28 @@ async function updatePlayerPhoto() {
     e.preventDefault();
     const submitBtn = form.querySelector('button[type="submit"]');
     submitBtn.disabled = true;
+
+    const newNameInput = document.getElementById('photo-new-name');
+    const numberInput = document.getElementById('photo-number');
     const file = fileInput?.files?.[0];
-    if (!file) {
-      showAlert('Please choose a photo first.', 'error', 'photo-update-alert');
+    const newName = newNameInput?.value.trim();
+    const number = numberInput?.value.trim();
+
+    if (!file && !newName && !number) {
+      showAlert('Choose a photo, or enter a corrected name or number, before submitting.', 'error', 'photo-update-alert');
       submitBtn.disabled = false;
       return;
     }
+
     try {
-      const photo = await readImageAsDataUrl(file);
+      const photo = file ? await readImageFileAsDataUrl(file) : null;
       const payload = {
         name: form.elements.playerName.value.trim(),
         photo,
         photoPosition: `${xInput?.value || 50}% ${yInput?.value || 50}%`,
-        photoZoom: Number(zoomInput?.value || 1)
+        photoZoom: Number(zoomInput?.value || 1),
+        newName: newName || undefined,
+        number: number ? Number(number) : undefined
       };
       const res = await fetch('/api/players/photo', {
         method: 'POST',
@@ -197,8 +219,8 @@ async function updatePlayerPhoto() {
         body: JSON.stringify(payload)
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Could not update your photo.');
-      showAlert('Photo updated successfully.', 'success', 'photo-update-alert');
+      if (!res.ok) throw new Error(data.error || 'Could not update your details.');
+      showAlert('Details updated successfully.', 'success', 'photo-update-alert');
       loadRoster();
       form.reset();
       preview.style.display = 'none';
