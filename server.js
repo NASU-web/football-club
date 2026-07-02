@@ -8,7 +8,11 @@ const setupPersonnelRoutes = require('./personnel-server');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const DATABASE_URL = process.env.DATABASE_URL;
+const DATABASE_URL = process.env.DATABASE_URL || (
+  process.env.PGHOST && process.env.PGPORT && process.env.PGDATABASE && process.env.PGUSER
+    ? `postgresql://${encodeURIComponent(process.env.PGUSER)}:${encodeURIComponent(process.env.PGPASSWORD || '')}@${process.env.PGHOST}:${process.env.PGPORT}/${process.env.PGDATABASE}`
+    : ''
+);
 const PLAYER_UPDATE_CODE = 'MESSI';
 let dataStore;
 
