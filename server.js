@@ -1,14 +1,16 @@
 const express = require('express');
 const session = require('express-session');
 const bcrypt = require('bcryptjs');
-const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const { createDataStore } = require('./db-store');
 const setupPersonnelRoutes = require('./personnel-server');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const DATA_DIR = fs.existsSync(path.join(__dirname, 'data')) ? path.join(__dirname, 'data') : __dirname;
+const DATABASE_URL = process.env.DATABASE_URL;
+const PLAYER_UPDATE_CODE = 'MESSI';
+let dataStore;
 
 app.use(express.json({ limit: '5mb' }));
 app.use(express.urlencoded({ extended: true, limit: '5mb' }));
@@ -31,28 +33,31 @@ app.get('/personnel', (req, res) => {
   res.sendFile(path.join(__dirname, 'personnel.html'));
 });
 
-// ---------- tiny JSON "database" helpers ----------
+app.get('/api/health/db', async (req, res) => {
+  if (!dataStore) {
+    return res.status(503).json({ ok: false, error: 'Datastore not initialized yet.' });
+  }
+
+  try {
+    const result = await dataStore.health();
+    return res.json({ ok: true, ...result, timestamp: new Date().toISOString() });
+  } catch (err) {
+    return res.status(503).json({ ok: false, error: err.message || 'Database health check failed.' });
+  }
+});
+
+// ---------- PostgreSQL-backed datastore helpers ----------
 function readData(file) {
-  return JSON.parse(fs.readFileSync(path.join(DATA_DIR, file), 'utf-8'));
+  if (!dataStore) throw new Error('Datastore is not initialized.');
+  return dataStore.readData(file);
 }
 function safeReadData(file, fallback) {
-  try {
-    return readData(file);
-  } catch (err) {
-    if (err.code === 'ENOENT') {
-      writeData(file, fallback);
-      return fallback;
-    }
-    if (err instanceof SyntaxError) {
-      writeData(file, fallback);
-      return fallback;
-    }
-    throw err;
-  }
+  if (!dataStore) throw new Error('Datastore is not initialized.');
+  return dataStore.safeReadData(file, fallback);
 }
 function writeData(file, data) {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
-  fs.writeFileSync(path.join(DATA_DIR, file), JSON.stringify(data, null, 2));
+  if (!dataStore) throw new Error('Datastore is not initialized.');
+  dataStore.writeData(file, data);
 }
 function requireAdmin(req, res, next) {
   if (req.session && req.session.isAdmin) return next();
@@ -143,21 +148,30 @@ app.post('/api/players/register', (req, res) => {
 });
 
 app.post('/api/players/photo', (req, res) => {
-  const { name, photo, photoPosition, photoZoom, newName, number } = req.body || {};
+  const { name, photo, photoPosition, photoZoom, updateCode, updatedName, updatedNumber, updatedLevel } = req.body || {};
+  if (String(updateCode || '').trim().toUpperCase() !== PLAYER_UPDATE_CODE) {
+    return res.status(403).json({ error: 'Invalid code password.' });
+  }
   if (!name) {
     return res.status(400).json({ error: 'Your name is required.' });
   }
-  if (!photo && !newName && !number) {
-    return res.status(400).json({ error: 'Provide a photo, a corrected name, or a corrected number.' });
+  if (!photo && !updatedName && (updatedNumber === null || updatedNumber === undefined || updatedNumber === '') && !updatedLevel) {
+    return res.status(400).json({ error: 'Provide a photo, name update, number update, or level update.' });
+  }
   }
   const players = readData('players.json');
   const idx = players.findIndex(p => String(p.name).trim().toLowerCase() === String(name).trim().toLowerCase());
   if (idx === -1) {
     return res.status(404).json({ error: 'No matching player was found. Try the exact name used during registration.' });
   }
+  if (photo) {
+    players[idx].photo = String(photo).trim();
+    players[idx].photoPosition = photoPosition ? String(photoPosition).trim() : (players[idx].photoPosition || '50% 50%');
+    players[idx].photoZoom = Number(photoZoom || players[idx].photoZoom || 1);
+  }
 
-  if (newName && String(newName).trim()) {
-    const trimmedNewName = String(newName).trim();
+  if (typeof updatedName === 'string' && updatedName.trim()) {
+    const trimmedNewName = updatedName.trim();
     const clash = players.some((p, i) => i !== idx && String(p.name).trim().toLowerCase() === trimmedNewName.toLowerCase());
     if (clash) {
       return res.status(409).json({ error: 'Another player already has that name. Ask a club admin for help.' });
@@ -165,18 +179,20 @@ app.post('/api/players/photo', (req, res) => {
     players[idx].name = trimmedNewName;
   }
 
-  if (number !== undefined && number !== null && String(number).trim() !== '') {
-    const parsedNumber = Number(number);
+  if (updatedNumber !== null && updatedNumber !== undefined && updatedNumber !== '') {
+    const parsedNumber = Number(updatedNumber);
     if (!Number.isFinite(parsedNumber) || parsedNumber < 1 || parsedNumber > 99) {
-      return res.status(400).json({ error: 'Number must be between 1 and 99.' });
+      return res.status(400).json({ error: 'Player number must be between 1 and 99.' });
     }
-    players[idx].number = parsedNumber;
+    players[idx].number = Math.round(parsedNumber);
   }
 
-  if (photo) {
-    players[idx].photo = String(photo).trim();
-    players[idx].photoPosition = photoPosition ? String(photoPosition).trim() : (players[idx].photoPosition || '50% 50%');
-    players[idx].photoZoom = Number(photoZoom || players[idx].photoZoom || 1);
+  if (typeof updatedLevel === 'string' && updatedLevel.trim()) {
+    const allowedLevels = ['Freshman', 'Sophomore', 'Junior', 'Senior', 'Graduate'];
+    if (!allowedLevels.includes(updatedLevel.trim())) {
+      return res.status(400).json({ error: 'Invalid level selected.' });
+    }
+    players[idx].year = updatedLevel.trim();
   }
 
   writeData('players.json', players);
@@ -411,7 +427,7 @@ app.put('/api/site-config', requireAdmin, (req, res) => {
   res.json({ ok: true, config: updated });
 });
 
-setupPersonnelRoutes(app, requireAdmin);
+setupPersonnelRoutes(app, requireAdmin, { readData, writeData });
 
 app.post('/api/fixtures', requireAdmin, (req, res) => {
   const fixtures = readData('fixtures.json');
@@ -540,6 +556,39 @@ app.use((err, req, res, next) => {
   next(err);
 });
 
-app.listen(PORT, () => {
-  console.log(`NJUIT INT FC site running at http://localhost:${PORT}`);
+async function start() {
+  try {
+    if (!DATABASE_URL) {
+      throw new Error('DATABASE_URL is not set. Provide your Railway PostgreSQL URL via environment variables.');
+    }
+
+    dataStore = createDataStore({
+      connectionString: DATABASE_URL
+    });
+    await dataStore.init();
+
+    app.listen(PORT, () => {
+      console.log(`NJUIT INT FC site running at http://localhost:${PORT}`);
+      console.log('Using PostgreSQL datastore.');
+    });
+  } catch (err) {
+    console.error('Failed to start server with PostgreSQL datastore:', err);
+    process.exit(1);
+  }
+}
+
+process.on('SIGINT', async () => {
+  if (dataStore) {
+    await dataStore.close();
+  }
+  process.exit(0);
 });
+
+process.on('SIGTERM', async () => {
+  if (dataStore) {
+    await dataStore.close();
+  }
+  process.exit(0);
+});
+
+start();

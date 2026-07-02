@@ -59,19 +59,34 @@
       <div id="photo-update-alert"></div>
       <form id="photo-update-form" class="form-grid">
         <div class="field">
-          <label for="photo-player-name">Your name (as currently on the roster)</label>
+          <label for="photo-player-name">Registered name</label>
           <input id="photo-player-name" name="playerName" type="text" required>
         </div>
         <div class="field">
-          <label for="photo-new-name">Correct name <span class="form-note" style="display:inline;">(only if it's wrong)</span></label>
-          <input id="photo-new-name" name="newName" type="text" placeholder="Leave blank to keep as-is">
+          <label for="photo-new-name">Update name (optional)</label>
+          <input id="photo-new-name" name="updatedName" type="text" placeholder="Leave blank to keep current name">
         </div>
         <div class="field">
-          <label for="photo-number">Number <span class="form-note" style="display:inline;">(only if it's wrong)</span></label>
-          <input id="photo-number" name="number" type="number" min="1" max="99" placeholder="Leave blank to keep as-is">
+          <label for="photo-new-number">Update number (optional)</label>
+          <input id="photo-new-number" name="updatedNumber" type="number" min="1" max="99" placeholder="Leave blank to keep current number">
+        </div>
+        <div class="field">
+          <label for="photo-new-level">Update level (optional)</label>
+          <select id="photo-new-level" name="updatedLevel">
+            <option value="">Keep current level</option>
+            <option>Freshman</option>
+            <option>Sophomore</option>
+            <option>Junior</option>
+            <option>Senior</option>
+            <option>Graduate</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="photo-update-code">Code password</label>
+          <input id="photo-update-code" name="updateCode" type="password" required autocomplete="off" placeholder="Enter code password">
         </div>
         <div class="field full">
-          <label for="photo-file">Choose a photo <span class="form-note" style="display:inline;">(optional if you're only fixing your name or number)</span></label>
+          <label for="photo-file">Choose a photo <span class="form-note" style="display:inline;">(optional if you're only fixing name/number/level)</span></label>
           <input id="photo-file" name="photo" type="file" accept="image/*">
           <p class="form-note">You can choose a photo from your phone or laptop album.</p>
           <div id="photo-position-controls" class="photo-position-controls" style="display:none;">

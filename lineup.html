@@ -105,6 +105,7 @@ const POS = { Goalkeeper: 'GK', Defender: 'DF', Midfielder: 'MF', Forward: 'FW' 
 let lineupUnlocked = false;
 let CURRENT_LINEUP = null;
 let activeDrag = null;
+let lineupDirty = false;
 
 const LINEUP_UNLOCK_CODE = 'BOMBO';
 
@@ -127,14 +128,48 @@ function setLineupLockState(unlocked) {
   }
 }
 
+async function saveLineupChanges() {
+  if (!CURRENT_LINEUP || !lineupDirty) return true;
+  const status = document.getElementById('lineup-lock-status');
+  if (status) {
+    status.textContent = 'Saving...';
+    status.style.color = 'var(--crimson)';
+  }
+
+  try {
+    const res = await fetch('/api/lineup', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ startingXI: CURRENT_LINEUP.startingXI })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Could not save lineup changes.');
+    lineupDirty = false;
+    if (data.lineup) {
+      CURRENT_LINEUP = { ...CURRENT_LINEUP, ...data.lineup };
+    }
+    return true;
+  } catch (err) {
+    if (status) {
+      status.textContent = err.message || 'Save failed';
+      status.style.color = 'var(--crimson)';
+    }
+    return false;
+  }
+}
+
 function initLineupUnlock() {
   const btn = document.getElementById('lineup-unlock-btn');
   const input = document.getElementById('lineup-unlock-code');
   const status = document.getElementById('lineup-lock-status');
   if (!btn || !input || !status) return;
 
-  btn.addEventListener('click', () => {
+  btn.addEventListener('click', async () => {
     if (lineupUnlocked) {
+      const ok = await saveLineupChanges();
+      if (!ok) {
+        return;
+      }
       setLineupLockState(false);
       return;
     }
@@ -182,6 +217,7 @@ function updateDraggedDotPosition(event) {
   if (slot) {
     slot.x = x;
     slot.y = y;
+    lineupDirty = true;
   }
 }
 

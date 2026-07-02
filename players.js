@@ -191,14 +191,20 @@ async function updatePlayerPhoto() {
     const submitBtn = form.querySelector('button[type="submit"]');
     submitBtn.disabled = true;
 
-    const newNameInput = document.getElementById('photo-new-name');
-    const numberInput = document.getElementById('photo-number');
     const file = fileInput?.files?.[0];
-    const newName = newNameInput?.value.trim();
-    const number = numberInput?.value.trim();
+    const updatedName = form.elements.updatedName.value.trim();
+    const updatedNumberRaw = form.elements.updatedNumber.value;
+    const updatedLevel = form.elements.updatedLevel.value;
 
-    if (!file && !newName && !number) {
-      showAlert('Choose a photo, or enter a corrected name or number, before submitting.', 'error', 'photo-update-alert');
+    if (!file && !updatedName && updatedNumberRaw === '' && !updatedLevel) {
+      showAlert('Choose a photo, or enter a name/number/level update before submitting.', 'error', 'photo-update-alert');
+      submitBtn.disabled = false;
+      return;
+    }
+
+    const updateCode = form.elements.updateCode.value.trim();
+    if (!updateCode) {
+      showAlert('Please enter the code password.', 'error', 'photo-update-alert');
       submitBtn.disabled = false;
       return;
     }
@@ -207,11 +213,13 @@ async function updatePlayerPhoto() {
       const photo = file ? await readImageFileAsDataUrl(file) : null;
       const payload = {
         name: form.elements.playerName.value.trim(),
+        updateCode,
         photo,
+        updatedName: updatedName || null,
+        updatedNumber: updatedNumberRaw !== '' ? Number(updatedNumberRaw) : null,
+        updatedLevel: updatedLevel || null,
         photoPosition: `${xInput?.value || 50}% ${yInput?.value || 50}%`,
-        photoZoom: Number(zoomInput?.value || 1),
-        newName: newName || undefined,
-        number: number ? Number(number) : undefined
+        photoZoom: Number(zoomInput?.value || 1)
       };
       const res = await fetch('/api/players/photo', {
         method: 'POST',
@@ -219,8 +227,8 @@ async function updatePlayerPhoto() {
         body: JSON.stringify(payload)
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Could not update your details.');
-      showAlert('Details updated successfully.', 'success', 'photo-update-alert');
+      if (!res.ok) throw new Error(data.error || 'Could not update your photo/details.');
+      showAlert('Photo/details updated successfully.', 'success', 'photo-update-alert');
       loadRoster();
       form.reset();
       preview.style.display = 'none';

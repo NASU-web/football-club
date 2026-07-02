@@ -1,15 +1,8 @@
-const fs = require('fs');
-const path = require('path');
 const crypto = require('crypto');
 
-function readData(file) {
-  return JSON.parse(fs.readFileSync(path.join(__dirname, file), 'utf-8'));
-}
-function writeData(file, data) {
-  fs.writeFileSync(path.join(__dirname, file), JSON.stringify(data, null, 2));
-}
+module.exports = function setupPersonnelRoutes(app, requireAdmin, store) {
+  const { readData, writeData } = store;
 
-module.exports = function setupPersonnelRoutes(app, requireAdmin) {
   app.get('/api/personnel', (req, res) => {
     res.json(readData('personnel.json'));
   });
