@@ -82,11 +82,25 @@
           </select>
         </div>
         <div class="field">
+          <label for="photo-new-position">Update position (optional)</label>
+          <select id="photo-new-position" name="updatedPosition">
+            <option value="">Keep current position</option>
+            <option>Goalkeeper</option>
+            <option>Defender</option>
+            <option>Midfielder</option>
+            <option>Forward</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="photo-new-nationality">Update nationality (optional)</label>
+          <input id="photo-new-nationality" name="updatedNationality" type="text" placeholder="Leave blank to keep current nationality">
+        </div>
+        <div class="field">
           <label for="photo-update-code">Code password</label>
           <input id="photo-update-code" name="updateCode" type="password" required autocomplete="off" placeholder="Enter code password">
         </div>
         <div class="field full">
-          <label for="photo-file">Choose a photo <span class="form-note" style="display:inline;">(optional if you're only fixing name/number/level)</span></label>
+          <label for="photo-file">Choose a photo <span class="form-note" style="display:inline;">(optional if you're only fixing profile details)</span></label>
           <input id="photo-file" name="photo" type="file" accept="image/*">
           <p class="form-note">You can choose a photo from your phone or laptop album.</p>
           <div id="photo-position-controls" class="photo-position-controls" style="display:none;">
@@ -115,7 +129,7 @@
   </div>
 </section>
 
-<section id="register" class="tight">
+<section id="register" class="tight" style="scroll-margin-top:120px;">
   <div class="container">
     <div class="section-head"><h2>Register to play</h2></div>
     <div class="card" style="max-width:760px;">

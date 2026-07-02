@@ -152,15 +152,15 @@ app.post('/api/players/register', (req, res) => {
 });
 
 app.post('/api/players/photo', (req, res) => {
-  const { name, photo, photoPosition, photoZoom, updateCode, updatedName, updatedNumber, updatedLevel } = req.body || {};
+  const { name, photo, photoPosition, photoZoom, updateCode, updatedName, updatedNumber, updatedLevel, updatedPosition, updatedNationality } = req.body || {};
   if (String(updateCode || '').trim().toUpperCase() !== PLAYER_UPDATE_CODE) {
     return res.status(403).json({ error: 'Invalid code password.' });
   }
   if (!name) {
     return res.status(400).json({ error: 'Your name is required.' });
   }
-  if (!photo && !updatedName && (updatedNumber === null || updatedNumber === undefined || updatedNumber === '') && !updatedLevel) {
-    return res.status(400).json({ error: 'Provide a photo, name update, number update, or level update.' });
+  if (!photo && !updatedName && (updatedNumber === null || updatedNumber === undefined || updatedNumber === '') && !updatedLevel && !updatedPosition && !updatedNationality) {
+    return res.status(400).json({ error: 'Provide a photo or profile detail updates.' });
   }
   const players = readData('players.json');
   const idx = players.findIndex(p => String(p.name).trim().toLowerCase() === String(name).trim().toLowerCase());
@@ -196,6 +196,18 @@ app.post('/api/players/photo', (req, res) => {
       return res.status(400).json({ error: 'Invalid level selected.' });
     }
     players[idx].year = updatedLevel.trim();
+  }
+
+  if (typeof updatedPosition === 'string' && updatedPosition.trim()) {
+    const allowedPositions = ['Goalkeeper', 'Defender', 'Midfielder', 'Forward'];
+    if (!allowedPositions.includes(updatedPosition.trim())) {
+      return res.status(400).json({ error: 'Invalid position selected.' });
+    }
+    players[idx].position = updatedPosition.trim();
+  }
+
+  if (typeof updatedNationality === 'string' && updatedNationality.trim()) {
+    players[idx].nationality = updatedNationality.trim();
   }
 
   writeData('players.json', players);

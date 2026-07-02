@@ -195,9 +195,11 @@ async function updatePlayerPhoto() {
     const updatedName = form.elements.updatedName.value.trim();
     const updatedNumberRaw = form.elements.updatedNumber.value;
     const updatedLevel = form.elements.updatedLevel.value;
+    const updatedPosition = form.elements.updatedPosition.value;
+    const updatedNationality = form.elements.updatedNationality.value.trim();
 
-    if (!file && !updatedName && updatedNumberRaw === '' && !updatedLevel) {
-      showAlert('Choose a photo, or enter a name/number/level update before submitting.', 'error', 'photo-update-alert');
+    if (!file && !updatedName && updatedNumberRaw === '' && !updatedLevel && !updatedPosition && !updatedNationality) {
+      showAlert('Choose a photo, or enter profile detail updates before submitting.', 'error', 'photo-update-alert');
       submitBtn.disabled = false;
       return;
     }
@@ -218,6 +220,8 @@ async function updatePlayerPhoto() {
         updatedName: updatedName || null,
         updatedNumber: updatedNumberRaw !== '' ? Number(updatedNumberRaw) : null,
         updatedLevel: updatedLevel || null,
+        updatedPosition: updatedPosition || null,
+        updatedNationality: updatedNationality || null,
         photoPosition: `${xInput?.value || 50}% ${yInput?.value || 50}%`,
         photoZoom: Number(zoomInput?.value || 1)
       };
