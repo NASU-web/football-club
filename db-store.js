@@ -1,7 +1,12 @@
 const { Pool } = require('pg');
 
 const DEFAULT_DATA = {
-  'admin.json': [],
+  'admin.json': [
+    {
+      username: 'admin',
+      passwordHash: '$2a$10$TZGDdbLmpgC75//GX63SIuYkpV.uH8l4GDmrDlZg8y3bi5d3apTjK'
+    }
+  ],
   'players.json': [],
   'suggestions.json': [],
   'fixtures.json': [],
@@ -52,6 +57,15 @@ const DEFAULT_DATA = {
 
 function clone(value) {
   return JSON.parse(JSON.stringify(value));
+}
+
+function hasValidAdminRecord(value) {
+  return Array.isArray(value)
+    && value.length > 0
+    && typeof value[0]?.username === 'string'
+    && typeof value[0]?.passwordHash === 'string'
+    && value[0].username.trim() !== ''
+    && value[0].passwordHash.trim() !== '';
 }
 
 function createDataStore({ connectionString }) {
@@ -106,7 +120,23 @@ function createDataStore({ connectionString }) {
     });
 
     for (const file of Object.keys(DEFAULT_DATA)) {
-      if (cache.has(file)) continue;
+      if (cache.has(file)) {
+        if (file === 'admin.json' && !hasValidAdminRecord(cache.get(file))) {
+          const repaired = clone(DEFAULT_DATA[file]);
+          cache.set(file, repaired);
+          await pool.query(
+            `
+              INSERT INTO app_data (key, value, updated_at)
+              VALUES ($1, $2::jsonb, NOW())
+              ON CONFLICT (key)
+              DO UPDATE SET value = EXCLUDED.value, updated_at = NOW()
+            `,
+            [file, JSON.stringify(repaired)]
+          );
+        }
+        continue;
+      }
+
       const seeded = clone(DEFAULT_DATA[file]);
       cache.set(file, clone(seeded));
       await pool.query(
