@@ -158,7 +158,6 @@ app.post('/api/players/photo', (req, res) => {
   if (!photo && !updatedName && (updatedNumber === null || updatedNumber === undefined || updatedNumber === '') && !updatedLevel) {
     return res.status(400).json({ error: 'Provide a photo, name update, number update, or level update.' });
   }
-  }
   const players = readData('players.json');
   const idx = players.findIndex(p => String(p.name).trim().toLowerCase() === String(name).trim().toLowerCase());
   if (idx === -1) {
